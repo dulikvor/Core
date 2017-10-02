@@ -5,7 +5,7 @@
 
 namespace core{
 
-    class AsyncTask;
+    template<typename T> class Future;
 
     template<typename T>
     class Promise
@@ -13,15 +13,15 @@ namespace core{
     public:
 
         void SetValue(const T& value){
-            static_cast<Future<T>*>(m_task.get())->SetValue(value);
+            m_future->SetValue(value);
         }
 
-        std::shared_ptr<AsyncTask> GetTask(const std::function<void(void)>& requestedPoint) {
-            m_task = std::shared_ptr<AsyncTask>(new Future<T>(requestedPoint));
-            return m_task;
+        std::shared_ptr<Future<T>> GetFuture() {
+            m_future = std::make_shared<Future<T>>();
+            return m_future;
         }
 
     private:
-        std::shared_ptr<AsyncTask> m_task;
+        std::shared_ptr<Future<T>> m_future;
     };
 }

@@ -33,6 +33,3 @@ file(GLOB_RECURSE MYSources src/*.cpp)
 message(STATUS "CXX files - src/${MYSources}")
 #Compile staticly
 add_library(Core STATIC ${MYSources})
-add_dependencies(Core SpdLog)
-add_custom_command(TARGET Core POST_BUILD COMMAND mkdir ${CMAKE_CURRENT_SOURCE_DIR}/include &&
-        cp ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h ${CMAKE_CURRENT_SOURCE_DIR}/include)

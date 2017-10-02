@@ -9,9 +9,9 @@ namespace  core{
     template<typename T> class Promise;
 
     template<typename T>
-    class Future: public AsyncTask{
+    class Future
+    {
     public:
-        explicit Future(const std::function<void(void)>& requestedPoint):AsyncTask(requestedPoint){}
         virtual ~Future(){}
         T Get() const {
             {
