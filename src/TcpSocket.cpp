@@ -1,7 +1,6 @@
 #include "TcpSocket.h"
-#include <sys/socket.h>
 #include <sys/types.h>
-#include <netdb.h>
+#include <sys/socket.h>
 #include <unistd.h>
 #include "Assert.h"
 #include "Logger.h"
@@ -66,6 +65,15 @@ namespace core
 		//Establish a socket
 		m_fd = ::socket(AF_INET, SOCK_STREAM, 0);
 		LINUX_VERIFY(m_fd != -1);
+		sockaddr_in serverAddress = GetSocketAddress(host, port);
+		TRACE_INFO("Attempting to connect to host - %s:%u", host.c_str(), port);
+		LINUX_VERIFY(::connect(m_fd, (const struct sockaddr*)&serverAddress, sizeof(serverAddress)) != -1);
+		m_hostAddress = host;
+		m_port = (int)port;
+	}
+
+	sockaddr_in TCPSocket::GetSocketAddress(const string& host, uint16_t port)
+	{
 		//Prase received address
 		struct addrinfo hints;
 		memset(&hints, 0, sizeof(hints));
@@ -82,10 +90,7 @@ namespace core
 		serverAddress.sin_family = AF_INET;
 		//Free the addresses linked list
 		freeaddrinfo(result);
-		TRACE_INFO("Attempting to connect to host - %s:%u", host.c_str(), port);
-		LINUX_VERIFY(::connect(m_fd, (const struct sockaddr*)&serverAddress, sizeof(serverAddress)) != -1);
-		m_hostAddress = host;
-		m_port = (int)port;
+		return serverAddress;
 	}
 	
 	void TCPSocket::Close()

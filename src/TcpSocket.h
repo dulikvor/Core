@@ -3,6 +3,7 @@
 #include <string>
 #include <atomic>
 #include <utility>
+#include <netdb.h>
 
 namespace core
 {
@@ -52,6 +53,7 @@ namespace core
 		//Attempts to receive new received connection, the operation is bound wait,
 		//a newly received connection will be wrapped with a TCPSocket instance.
 		TCPSocket Accept();
+		static sockaddr_in GetSocketAddress(const std::string& host, uint16_t port);
 
 	private:
 		const int Invalid_Socket = -1;
