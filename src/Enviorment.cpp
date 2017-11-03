@@ -1,5 +1,10 @@
 #include "Enviorment.h"
+#include <functional>
 #include <unistd.h>
+#include <sys/types.h>
+#include <ifaddrs.h>
+#include <netinet/in.h>
+#include <netdb.h>
 #include "Assert.h"
 #include "Directory.h"
 
@@ -15,9 +20,11 @@ namespace core
 
 	void Enviorment::Init()
 	{
-		ASSERT(m_initiated.exchange(true) == false);
+		if(m_initiated.exchange(true) == true)
+			return;
 		LINUX_VERIFY((m_coreCount = sysconf(_SC_NPROCESSORS_ONLN)) != -1);
 		ReadProcessLocation();
+		ReadIPV4Addresses();
 	}
 
 	void Enviorment::ReadProcessLocation()
@@ -27,5 +34,26 @@ namespace core
 		string processFullPath = string(buffer, byteCount > 0 ? byteCount : 0);
 		m_processPath = Directory::GetDir(processFullPath);
 		m_processName = Directory::GetProcessName(processFullPath);
+	}
+
+	void Enviorment::ReadIPV4Addresses()
+	{
+		struct ifaddrs *ifaddr;
+		LINUX_VERIFY(getifaddrs(&ifaddr) != -1);
+		std::unique_ptr<struct ifaddrs, std::function<void(struct ifaddrs*)>> guard(ifaddr,
+			[](struct ifaddrs* ptr){freeifaddrs(ptr);});
+		struct ifaddrs* ifaCurrent = ifaddr;
+		char host[INET_ADDRSTRLEN];
+		while(ifaCurrent != NULL)
+		{
+			if(ifaCurrent->ifa_addr != NULL && ifaCurrent->ifa_addr->sa_family == AF_INET)
+			{
+				void* addrPtr =&((struct sockaddr_in *)ifaCurrent->ifa_addr)->sin_addr;
+				LINUX_VERIFY(getnameinfo(ifaCurrent->ifa_addr, sizeof(struct sockaddr_in), host, INET_ADDRSTRLEN,
+							NULL, 0, NI_NUMERICHOST) == 0);
+				m_ipv4Adrresses.emplace_back(host);
+			}
+			ifaCurrent = ifaCurrent->ifa_next;
+		}
 	}
 }
