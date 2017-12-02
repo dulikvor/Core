@@ -14,11 +14,11 @@ public: \
 \
 public: \
 	struct Hash{ \
-    constexpr Hash() = default; \
-    size_t operator()(const name& e) const noexcept{ \
+    Hash() = default; \
+    size_t operator()(const name& e) const{ \
         return std::hash<int>{}((int)(Enumeration)e); \
     };\
-    size_t operator()(const name* e) const noexcept{ \
+    size_t operator()(const name* e) const{ \
             return std::hash<int>{}((int)(Enumeration)*e); \
     }; \
     }; \

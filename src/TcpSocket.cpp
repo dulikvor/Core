@@ -1,7 +1,9 @@
 #include "TcpSocket.h"
 #include <sys/types.h>
+#if defined(__linux)
 #include <sys/socket.h>
 #include <unistd.h>
+#endif
 #include "Assert.h"
 #include "Logger.h"
 
@@ -63,15 +65,18 @@ namespace core
 		VERIFY(m_connected == false, "Socket is already bound");
 		TRACE_INFO("Attempting to open a socket");
 		//Establish a socket
+#if defined (__linux)
 		m_fd = ::socket(AF_INET, SOCK_STREAM, 0);
-		LINUX_VERIFY(m_fd != -1);
+		PLATFORM_VERIFY(m_fd != -1);
 		sockaddr_in serverAddress = GetSocketAddress(host, port);
 		TRACE_INFO("Attempting to connect to host - %s:%u", host.c_str(), port);
-		LINUX_VERIFY(::connect(m_fd, (const struct sockaddr*)&serverAddress, sizeof(serverAddress)) != -1);
+		PLATFORM_VERIFY(::connect(m_fd, (const struct sockaddr*)&serverAddress, sizeof(serverAddress)) != -1);
+#endif
 		m_hostAddress = host;
 		m_port = (int)port;
 	}
 
+#if defined(__linux)
 	sockaddr_in TCPSocket::GetSocketAddress(const string& host, uint16_t port)
 	{
 		//Prase received address
@@ -81,7 +86,7 @@ namespace core
 		hints.ai_family = AF_INET;
 
 		struct addrinfo* result = nullptr;
-		LINUX_VERIFY(::getaddrinfo(host.c_str(), nullptr, &hints, &result) == 0);
+		PLATFORM_VERIFY(::getaddrinfo(host.c_str(), nullptr, &hints, &result) == 0);
 		//Build host address
 		struct sockaddr_in serverAddress;
 		memset(&serverAddress, 0, sizeof(serverAddress));
@@ -92,11 +97,14 @@ namespace core
 		freeaddrinfo(result);
 		return serverAddress;
 	}
+#endif
 	
 	void TCPSocket::Close()
 	{
 		TRACE_INFO("Attempting to close the socket");
+#if defined(__linux)
 		LINUX_VERIFY(::close(m_fd) != -1);
+#endif
 		m_connected = false;
 		m_fd = Invalid_Socket;
 	}
@@ -105,21 +113,29 @@ namespace core
 	{
 		ASSERT(m_role == SocketRole::Client);
 		VERIFY(m_connected == true, "Socket is not connected");
+#if defined(__linux)
 		ssize_t bytesCount;
-		LINUX_VERIFY(bytesCount = ::send(m_fd, (const void*)buf, bufSize, MSG_NOSIGNAL) != -1);
-		return (int)bytesCount;	
+		PLATFORM_VERIFY(bytesCount = ::send(m_fd, (const void*)buf, bufSize, MSG_NOSIGNAL) != -1);
+		return (int)bytesCount;
+#else
+		return 0;
+#endif
+	
 	}
 
+#if defined(__linux)
 	pair<char*, ssize_t> TCPSocket::Receive(size_t sizeToRead)
 	{
 		ASSERT(m_role == SocketRole::Client);
 		VERIFY(m_connected == true, "Socket is not connected");
 		ssize_t bytesCount;
 		char* buf = (char*)malloc(sizeof(char) * sizeToRead);
-		LINUX_VERIFY(bytesCount = ::recv(m_fd, (void*)buf, sizeToRead, 0) != -1); 
+		PLATFORM_VERIFY(bytesCount = ::recv(m_fd, (void*)buf, sizeToRead, 0) != -1); 
 		return {buf, bytesCount};
 	}
+#endif
 
+#if defined(__linux)
 	void TCPSocket::Bind(const string& host, int port)
 	{
 		ASSERT(m_role == SocketRole::Server);
@@ -127,7 +143,7 @@ namespace core
 		TRACE_INFO("Attempting to open a socket");
 		//Establish a socket
 		m_fd = ::socket(AF_INET, SOCK_STREAM, 0);
-		LINUX_VERIFY(m_fd != -1);
+		PLATFORM_VERIFY(m_fd != -1);
 		//Prase received address
 		struct addrinfo hints;
 		memset(&hints, 0, sizeof(hints));
@@ -135,7 +151,7 @@ namespace core
 		hints.ai_family = AF_INET;
 
 		struct addrinfo* result = nullptr;
-		LINUX_VERIFY(::getaddrinfo(host.c_str(), nullptr, &hints, &result) == 0);
+		PLATFORM_VERIFY(::getaddrinfo(host.c_str(), nullptr, &hints, &result) == 0);
 		//Build host address
 		struct sockaddr_in serverAddress;
 		memset(&serverAddress, 0, sizeof(serverAddress));
@@ -145,7 +161,7 @@ namespace core
 		//Free the addresses linked list
 		freeaddrinfo(result);
 		TRACE_INFO("Attempting to bind host address - %s:%d", host.c_str(), port);
-		LINUX_VERIFY(::bind(m_fd, (const struct sockaddr*)&serverAddress, 
+		PLATFORM_VERIFY(::bind(m_fd, (const struct sockaddr*)&serverAddress,
 					sizeof(serverAddress)) != -1);
 		m_hostAddress = host;
 		if(port) //Port is known
@@ -154,31 +170,44 @@ namespace core
 		{
 			socklen_t addressSize = sizeof(serverAddress);
 			memset(&serverAddress, 0, sizeof(serverAddress));
-			LINUX_VERIFY(::getsockname(m_fd, (struct sockaddr*)&serverAddress, 
+			PLATFORM_VERIFY(::getsockname(m_fd, (struct sockaddr*)&serverAddress,
 						&addressSize) != -1);
 			m_port = (int)ntohs(serverAddress.sin_port);
 		}
 	}
+#else
+	void TCPSocket::Bind(const string& host, int port)
+	{
+	}
+#endif
+
 
 	void TCPSocket::Listen()
 	{
 		ASSERT(m_role == SocketRole::Server);
 		VERIFY(m_connected, "Socket is not bound to any host");
 		TRACE_INFO("Attempting to listen on a socket %s:%d", m_hostAddress.c_str(), m_port);
-		LINUX_VERIFY(::listen(m_fd, Max_Incoming_connections) != -1);
+#if defined(__linux)
+		PLATFORM_VERIFY(::listen(m_fd, Max_Incoming_connections) != -1);
+#endif
 	}
 
 	TCPSocket TCPSocket::Accept()
 	{
 		ASSERT(m_role == SocketRole::Server);
 		VERIFY(m_connected, "Socket is not bound to any host");
+#if defined(__linux)
 		sockaddr_in serverAddress;
 		memset(&serverAddress, 0, sizeof(serverAddress));
 		int fd;
 		socklen_t addressSize = sizeof(serverAddress);
 		VERIFY(fd = ::accept(m_fd, (sockaddr*)&serverAddress, &addressSize)
 				!= Invalid_Socket, "Invalid socket was accepted");
-		return {SocketRole::Client, fd};
+		return{ SocketRole::Client, fd };
+#else
+		return{ SocketRole::Client, 0 };
+#endif
+		
 
 	}
 }

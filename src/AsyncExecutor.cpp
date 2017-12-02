@@ -32,7 +32,7 @@ namespace core
 			if(m_lastActiveThread == m_threadsPoolSize - 1)
 				return;
 			{
-				unique_lock<mutex>(*m_threadsLocks[++m_lastActiveThread]);
+				unique_lock<mutex> lock(*m_threadsLocks[++m_lastActiveThread]);
 				m_activeThreads[m_lastActiveThread] = true;
 				m_threadsCondVar[m_lastActiveThread]->notify_one();
 			}
@@ -46,7 +46,7 @@ namespace core
 			if(m_lastActiveThread == -1)
 				return;
 			{
-				unique_lock<mutex>(*m_threadsLocks[m_lastActiveThread]);
+				unique_lock<mutex> lock(*m_threadsLocks[m_lastActiveThread]);
 				m_activeThreads[m_lastActiveThread--] = false;
 			}
 		}

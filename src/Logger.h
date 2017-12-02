@@ -7,7 +7,9 @@
 #include <mutex>
 #include <tuple>
 #include <ctime>
+#if defined(__linux)
 #include <execinfo.h>
+#endif
 #include "Source.h"
 
 namespace spdlog
@@ -33,6 +35,12 @@ namespace core
 {
 	class Logger
 	{
+	private:
+		template<typename... Args>
+		struct Comperator
+		{
+			static const bool value = sizeof...(Args) == 0;
+		};
 	public:
 		static Logger& Instance();
 		~Logger(); //add nullptr to release the blocked wait. not by cancel of the thread.
@@ -41,7 +49,7 @@ namespace core
 		//Builds a formatted message from a received ansi like format, matching arguments and 
 		//the print source location. all will be used to genreate a string instance containing
 		//the final result.
-		std::string FormatMessage(const Source& source, const char* format, ...);
+		std::string BuildMessage(const Source& source, const char* format, ...);
 		//
 		void Start(TraceSeverity severity);
 		//
@@ -49,11 +57,11 @@ namespace core
 		void Trace(TraceSeverity severity, const Source& source, const char* format, Args... args)
 		{
 			ValidateParams<Args...>();
-			std::string message = FormatMessage(source, format, args...);
+			std::string message = BuildMessage(source, format, args...);
 			Log(severity, message);
 		}
 		template<typename... Args>
-		static typename std::enable_if<sizeof...(Args) == 0>::type ValidateParams(){}
+		static typename std::enable_if<Comperator<Args...>::value>::type ValidateParams(){} //Due to VS2013 limitation on expression SFIANE
         template<typename X, typename... Args>
         static void ValidateParams(){
             static_assert(std::is_same<X, std::string>::value == false, "Format only supports c-type string as type, don't use string");
@@ -62,6 +70,7 @@ namespace core
 
 		void PrintStack()
 		{
+#if defined(__linux)
 			//Trace the entire stack frames:
 			//Get the stack frames data
 			void** stackFramesAddresses = (void**)malloc(sizeof(void*)*ORIGINAL_STACK_FRAMES_GUESS);
@@ -82,6 +91,7 @@ namespace core
 			}
 			free(stackFramesAddresses);
 			free(stackFramesSymbols);
+#endif
 		}
 		//
 		void Log(TraceSeverity severity, const std::string& message);
@@ -104,7 +114,7 @@ namespace core
 		std::atomic_bool m_running;
 		TraceSeverity m_severity;
 		mutable std::mutex m_mut;
-		const int Local_buffer_size = 2000;
+		static const int Local_buffer_size = 2000;
 	};
 }
 

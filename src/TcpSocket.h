@@ -3,7 +3,9 @@
 #include <string>
 #include <atomic>
 #include <utility>
+#if defined(__linux)
 #include <netdb.h>
+#endif
 
 namespace core
 {
@@ -39,11 +41,13 @@ namespace core
 		//were successfuly sent will be returned. the command will not permit SIGPIPE signal
 		//to be commenced, and errno will be returned instead.
 		int Send(char* buf, size_t bufSize);
+#if defined(__linux)
 		//Receive will try to retrieve requested buffer size from and underlined socket. if
 		//succesfull the read buffer will be returned. if 0 is returned there are two options -
 		//the user request 0 sized buffer to be returned and this operation is valid, 
 		//the connection to the host is not presented any more and nothing was read.
 		std::pair<char*, ssize_t> Receive(size_t sizeToRead);
+#endif
 		//If on server tole and not already connected will attempt to "name" a newly created
 		//socket with a received address.
 		void Bind(const std::string& host, int port);
@@ -53,7 +57,9 @@ namespace core
 		//Attempts to receive new received connection, the operation is bound wait,
 		//a newly received connection will be wrapped with a TCPSocket instance.
 		TCPSocket Accept();
+#if defined(__linux)
 		static sockaddr_in GetSocketAddress(const std::string& host, uint16_t port);
+#endif
 
 	private:
 		const int Invalid_Socket = -1;

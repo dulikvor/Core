@@ -1,6 +1,7 @@
 #pragma once
-
+#if defined(__linux)
 #include <unistd.h>
+#endif
 #include "Assert.h"
 
 namespace core{

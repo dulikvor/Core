@@ -1,7 +1,9 @@
 #pragma once
 #include <vector>
 #include <type_traits>
+#if defined(__linux)
 #include <unistd.h>
+#endif
 #include "Assert.h"
 #include "Pipe.h"
 #include "ChildProcess.h"
@@ -9,6 +11,12 @@
 namespace core
 {
     class Process {
+	private:
+		template<typename... Args>
+		struct Comperator
+		{
+			static const bool value = sizeof...(Args) == 0;
+		};
     public:
         template<typename... Args>
         static ChildProcess SpawnChildProcess(const char* processPath, Args... args){
@@ -32,7 +40,7 @@ namespace core
 
     private:
         template<typename... Args>
-        static typename std::enable_if<sizeof...(Args) == 0>::type ValidateArgsType(){}
+		static typename std::enable_if<Comperator<Args...>::value>::type ValidateArgsType(){}
         template<typename First, typename... Args>
         static void ValidateArgsType(){
             static_assert(std::is_same<First, const char*>::value == true, "Format only supports c-type string as type");

@@ -29,7 +29,7 @@ namespace core
 		{
 			m_requestedPoint();
 		}
-		catch(const Exception& e)
+		catch(const Exception&)
 		{
 		}
 		catch(std::exception& e)

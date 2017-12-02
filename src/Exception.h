@@ -15,7 +15,7 @@ namespace core
 		template<typename ... Args>
 		Exception(const Source& source, const char* format, Args ... args)
 		{
-			m_message = Logger::Instance().FormatMessage(source, format, args...);
+			m_message = Logger::Instance().BuildMessage(source, format, args...);
 			TRACE_ERROR("%s", m_message.c_str());
 			Logger::Instance().PrintStack();
 			Logger::Instance().Flush();
