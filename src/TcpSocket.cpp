@@ -103,7 +103,7 @@ namespace core
 	{
 		TRACE_INFO("Attempting to close the socket");
 #if defined(__linux)
-		LINUX_VERIFY(::close(m_fd) != -1);
+		PLATFORM_VERIFY(::close(m_fd) != -1);
 #endif
 		m_connected = false;
 		m_fd = Invalid_Socket;

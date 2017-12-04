@@ -25,7 +25,7 @@ namespace core
             std::unique_ptr<Pipe> stdOutPipe(new Pipe());
             std::unique_ptr<Pipe> stdErrorPipe(new Pipe());
             pid_t processID = fork();
-            LINUX_VERIFY(processID != -1);
+            PLATFORM_VERIFY(processID != -1);
             if(processID == 0) { //child
                 stdOutPipe->CloseReadDescriptor();
                 dup2(stdOutPipe->GetWriteDescriptor(), Pipe::STD_OUT);

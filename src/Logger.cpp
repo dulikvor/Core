@@ -57,7 +57,7 @@ namespace core
                  + Enviorment::Instance().GetProcessName().c_str()).c_str(), functionMangaledMatch[3].str().c_str(), (const char*)NULL);
 
             char buffer[1024] = {0};
-            LINUX_VERIFY(read(childProcess.GetStdOutPipe().GetReadDescriptor(),
+            PLATFORM_VERIFY(read(childProcess.GetStdOutPipe().GetReadDescriptor(),
                                           buffer, 1024) != -1);
 			static regex fileNameLinePattern("([a-zA-Z0-9]*.[a-zA-Z0-9]*):([0-9]*)");
 			cmatch fileNameLineMatch;
