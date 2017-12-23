@@ -22,7 +22,7 @@ namespace core
 		}
 
 		Exception() = delete;
-		virtual ~Exception(){}
+		virtual ~Exception() noexcept {}
 		//Accessor
 		std::string GetMessage() const {return m_message;}
 	private:
