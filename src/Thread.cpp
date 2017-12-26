@@ -1,7 +1,6 @@
 #include "Thread.h"
 #include <iostream>
 #include "Assert.h"
-//#include "Logger.h"
 
 using namespace std;
 

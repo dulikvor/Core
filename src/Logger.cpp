@@ -86,8 +86,6 @@ namespace core
                 sinks.emplace_back(listener->GetSink());
             }
         }
-//        m_logger = make_shared<spdlog::async_logger>("Logger", sinks.begin(), sinks.end(), 4096,
-//            spdlog::async_overflow_policy::discard_log_msg);
                     
         m_logger = make_shared<LoggerImpl>("Logger", sinks.begin(), sinks.end(), 4096,
             spdlog::async_overflow_policy::discard_log_msg);
