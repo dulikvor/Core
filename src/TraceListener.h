@@ -4,6 +4,8 @@
 #include <memory>
 #include "Logger.h"
 
+#ifdef SPDLOG_FOUND
+
 namespace spdlog
 {
     namespace sinks
@@ -11,6 +13,8 @@ namespace spdlog
         class sink;
     }
 }
+
+#endif
 
 namespace core
 {
@@ -20,12 +24,15 @@ namespace core
         virtual ~TraceListener(){}
 
     protected:
+        
+#ifdef SPDLOG_FOUND
         std::shared_ptr<spdlog::sinks::sink> m_sink;
+        std::shared_ptr<spdlog::sinks::sink> GetSink(){ return m_sink; }
+#endif
 
     private:
         friend Logger;
-        //properties
-        std::shared_ptr<spdlog::sinks::sink> GetSink(){ return m_sink; }
+
     };
 
     class FileRotationListener : public TraceListener

@@ -1,7 +1,7 @@
 #include "Thread.h"
 #include <iostream>
 #include "Assert.h"
-#include "Logger.h"
+//#include "Logger.h"
 
 using namespace std;
 

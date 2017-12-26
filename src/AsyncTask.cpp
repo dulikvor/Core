@@ -1,6 +1,6 @@
 #include "AsyncTask.h"
 #include "Exception.h"
-#include "Logger.h"
+//#include "Logger.h"
 #include "Promise.h"
 
 using namespace std;

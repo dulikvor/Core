@@ -18,7 +18,7 @@ if(NOT CORE_NO_3RD_PARTY)
     set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
     set(PROJECT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
     list(APPEND CMAKE_PREFIX_PATH ${EXTERNAL_PROJECT_DIR})
-    find_package(SpdLog REQUIRED)
+    find_package(SpdLog)
     include(installThirdParty)
 endif()
 
@@ -27,7 +27,8 @@ if(NOT CORE_NO_GLOBAL_HANDLING)
     set(PROJECT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_DIR}/bin)
 endif()
-include_directories(. ${PROJECT_DIR}/Third_Party/include)
+include_directories(${PROJECT_3RD_LOC}/include ${PROJECT_DIR} ${PROJECT_DIR}/Third_Party/include)
+
 #Add all needed files
 file(GLOB_RECURSE MYSources src/*.cpp)
 message(STATUS "CXX files - src/${MYSources}")
