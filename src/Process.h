@@ -11,12 +11,12 @@
 namespace core
 {
     class Process {
-	private:
-		template<typename... Args>
-		struct Comperator
-		{
-			static const bool value = sizeof...(Args) == 0;
-		};
+    private:
+        template<typename... Args>
+        struct Comperator
+        {
+            static const bool value = sizeof...(Args) == 0;
+        };
     public:
         template<typename... Args>
         static ChildProcess SpawnChildProcess(const char* processPath, Args... args){
@@ -40,7 +40,7 @@ namespace core
 
     private:
         template<typename... Args>
-		static typename std::enable_if<Comperator<Args...>::value>::type ValidateArgsType(){}
+        static typename std::enable_if<Comperator<Args...>::value>::type ValidateArgsType(){}
         template<typename First, typename... Args>
         static void ValidateArgsType(){
             static_assert(std::is_same<First, const char*>::value == true, "Format only supports c-type string as type");
