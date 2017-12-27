@@ -1,4 +1,4 @@
-#include "Logger.h"
+
 #include <stdarg.h>
 #if defined(WIN32)
 #else
@@ -9,8 +9,8 @@
 #include <iostream>
 #include <vector>
 #include <regex>
-#include "spdlog/spdlog.h"
-#include "spdlog/async_logger.h"
+
+#include "Logger.h"
 #include "Assert.h"
 #include "Exception.h"
 #include "TraceListener.h"
@@ -19,8 +19,6 @@
 
 using namespace std;
 using namespace core;
-using namespace spdlog::sinks;
-using namespace spdlog::level;
 
 namespace core
 {
@@ -76,9 +74,10 @@ namespace core
         return make_tuple("???????", "???????", "???????");
     };
 
-    void Logger::Start(TraceSeverity severity)
-    {
-        ASSERT(!m_running.exchange(true));
+    void Logger::SetDefaultLogger() {
+
+#ifdef SPDLOG_FOUND
+        
         vector<shared_ptr<sink>> sinks;
         lock_guard<mutex> lock(m_mut);    
         {
@@ -87,8 +86,21 @@ namespace core
                 sinks.emplace_back(listener->GetSink());
             }
         }
-        m_logger = make_shared<spdlog::async_logger>("Logger", sinks.begin(), sinks.end(), 4096,
+                    
+        m_logger = make_shared<LoggerImpl>("Logger", sinks.begin(), sinks.end(), 4096,
             spdlog::async_overflow_policy::discard_log_msg);
+#else
+        m_logger = make_shared<LoggerImpl>();
+#endif
+    }
+
+    void Logger::Start(TraceSeverity severity)
+    {
+        ASSERT(!m_running.exchange(true));
+        if (!m_logger) {
+            SetDefaultLogger();
+        }
+        
         m_logger->set_level(level_enum(severity));
         m_severity = severity;
     }

@@ -12,10 +12,41 @@
 #endif
 #include "Source.h"
 
-namespace spdlog
-{
-    class logger;
-}
+#ifdef SPDLOG_FOUND
+
+#include "spdlog/spdlog.h"
+#include "spdlog/async_logger.h"
+using namespace spdlog::sinks;
+using namespace spdlog::level;
+
+using LoggerImpl = spdlog::async_logger;
+#else
+        
+    typedef enum
+    {
+        trace = 0,
+        debug = 1,
+        info = 2,
+        warn = 3,
+        err = 4,
+        critical = 5,
+        off = 6
+        
+    } level_enum;
+    
+    class LoggerImpl {
+        
+    public:
+        virtual void set_level(level_enum);
+        template <typename... Args> 
+        void log(level_enum lvl, const char* fmt, const Args&... args) {
+            
+        }
+        virtual void flush() {}
+    };
+
+#endif
+
 namespace core
 {
     class TraceListener;
@@ -33,6 +64,7 @@ const int ORIGINAL_STACK_FRAMES_GUESS = 20; //20 is arbitrary
 
 namespace core
 {
+    
     class Logger
     {
     private:
@@ -107,10 +139,11 @@ namespace core
 
         Logger();
         std::tuple<FileName, Line, FunctionName> GetFunctionAndLine(char* mangledSymbol);
-
+        void SetDefaultLogger();
+        
     private:
         std::list<std::shared_ptr<TraceListener>> m_listeners;
-        std::shared_ptr<spdlog::logger> m_logger;
+        std::shared_ptr<LoggerImpl> m_logger;
         std::atomic_bool m_running;
         TraceSeverity m_severity;
         mutable std::mutex m_mut;
