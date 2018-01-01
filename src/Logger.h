@@ -11,60 +11,20 @@
 #include <execinfo.h>
 #endif
 #include "Source.h"
+#include "LoggerImpl.h"
 
-#ifdef SPDLOG_FOUND
-
-#include "spdlog/spdlog.h"
-#include "spdlog/async_logger.h"
-using namespace spdlog::sinks;
-using namespace spdlog::level;
-
-using LoggerImpl = spdlog::async_logger;
-#else
-        
-    typedef enum
+namespace core
+{
+    const int ORIGINAL_STACK_FRAMES_GUESS = 20; //20 is arbitrary
+    class TraceListener;
+    enum TraceSeverity : short
     {
-        trace = 0,
-        debug = 1,
-        info = 2,
-        warn = 3,
-        err = 4,
-        critical = 5,
-        off = 6
-        
-    } level_enum;
-    
-    class LoggerImpl {
-        
-    public:
-        virtual void set_level(level_enum);
-        template <typename... Args> 
-        void log(level_enum lvl, const char* fmt, const Args&... args) {
-            
-        }
-        virtual void flush() {}
+        Verbose = 1,
+        Info,
+        Fatal = 4,
+        NoneWorking = 5
     };
 
-#endif
-
-namespace core
-{
-    class TraceListener;
-}
-
-enum TraceSeverity
-{
-    Verbose = 1,
-    Info,
-    Fatal = 4,
-    NoneWorking = 5
-};
-
-const int ORIGINAL_STACK_FRAMES_GUESS = 20; //20 is arbitrary
-
-namespace core
-{
-    
     class Logger
     {
     private:
@@ -76,15 +36,9 @@ namespace core
     public:
         static Logger& Instance();
         ~Logger(); //add nullptr to release the blocked wait. not by cancel of the thread.
-        //Receives a new listener, a reference to the listener will be kept under the logger.
         void AddListener(const std::shared_ptr<TraceListener>& listener);
-        //Builds a formatted message from a received ansi like format, matching arguments and 
-        //the print source location. all will be used to genreate a string instance containing
-        //the final result.
         std::string BuildMessage(const Source& source, const char* format, ...);
-        //
-        void Start(TraceSeverity severity);
-        //
+        void Start(TraceSeverity severity, std::unique_ptr<LoggerImpl> loggerImpl);
         template<typename... Args>
         void Trace(TraceSeverity severity, const Source& source, const char* format, Args... args)
         {
@@ -143,7 +97,7 @@ namespace core
         
     private:
         std::list<std::shared_ptr<TraceListener>> m_listeners;
-        std::shared_ptr<LoggerImpl> m_logger;
+        std::unique_ptr<LoggerImpl> m_loggerImpl;
         std::atomic_bool m_running;
         TraceSeverity m_severity;
         mutable std::mutex m_mut;
