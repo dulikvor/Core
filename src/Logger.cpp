@@ -12,7 +12,6 @@
 
 #include "Logger.h"
 #include "Assert.h"
-#include "Exception.h"
 #include "TraceListener.h"
 #include "Process.h"
 #include "Environment.h"
@@ -22,6 +21,7 @@ using namespace core;
 
 namespace core
 {
+
     Logger& Logger::Instance()
     {
         static Logger logger;
@@ -34,10 +34,6 @@ namespace core
 
     Logger::Logger(): m_severity(TraceSeverity::NoneWorking)
     {
-        static_assert((int)TraceSeverity::Verbose == (int)level_enum::debug, "TraceSeverity::Verbose dosn't match spdlog debug");
-        static_assert((int)TraceSeverity::Info == (int)level_enum::info, "TraceSeverity::Info dosn't match spdlog info");
-        static_assert((int)TraceSeverity::Fatal == (int)level_enum::err, "TraceSeverity::Error dosn't match spdlog err");
-
     }
 
     tuple<Logger::FileName, Logger::Line, Logger::FunctionName> Logger::GetFunctionAndLine(char* mangledSymbol){
@@ -74,51 +70,26 @@ namespace core
         return make_tuple("???????", "???????", "???????");
     };
 
-    void Logger::SetDefaultLogger() {
-
-#ifdef SPDLOG_FOUND
-        
-        vector<shared_ptr<sink>> sinks;
-        lock_guard<mutex> lock(m_mut);    
-        {
-            for(const shared_ptr<TraceListener>& listener : m_listeners)
-            {
-                sinks.emplace_back(listener->GetSink());
-            }
-        }
-                    
-        m_logger = make_shared<LoggerImpl>("Logger", sinks.begin(), sinks.end(), 4096,
-            spdlog::async_overflow_policy::discard_log_msg);
-#else
-        m_logger = make_shared<LoggerImpl>();
-#endif
-    }
-
-    void Logger::Start(TraceSeverity severity)
+    void Logger::Start(TraceSeverity severity, unique_ptr<LoggerImpl> loggerImpl)
     {
         ASSERT(!m_running.exchange(true));
-        if (!m_logger) {
-            SetDefaultLogger();
-        }
-        
-        m_logger->set_level(level_enum(severity));
+        swap(m_loggerImpl, loggerImpl);
+        m_loggerImpl->Start(severity);
         m_severity = severity;
     }
     void Logger::Log(TraceSeverity severity, const string& message)
     {
-        m_logger->log((level_enum)severity, message.c_str());
-        Flush();
+        m_loggerImpl->Log(severity, message.c_str());
     }
 
     void Logger::Flush()
     {
-        m_logger->flush();
+        m_loggerImpl->Flush();
     }
 
     void Logger::AddListener(const shared_ptr<TraceListener>& listener)
     {
-        lock_guard<mutex> lock(m_mut);
-        m_listeners.emplace_back(listener);
+        m_loggerImpl->AddListener(listener);
     }
 
     string Logger::BuildMessage(const Source& source, const char* format, ...)

@@ -29,8 +29,10 @@ if(NOT CORE_NO_GLOBAL_HANDLING)
 endif()
 include_directories(${PROJECT_3RD_LOC}/include ${PROJECT_DIR} ${PROJECT_DIR}/Third_Party/include)
 
-#Add all needed files
-file(GLOB_RECURSE MYSources src/*.cpp)
-message(STATUS "CXX files - src/${MYSources}")
 #Compile staticly
-add_library(Core STATIC ${MYSources})
+if(SPDLOG_SUPPORT)
+    set(SPDLOG_SRC src/SpdLogLogger.cpp src/SpdLogTraceListener.cpp)
+else()
+    set(SPDLOG_SRC)
+endif()
+add_library(Core STATIC src/AsyncExecutor.cpp src/AsyncTask.cpp src/AutoResetEvent.cpp src/ChildProcess.cpp src/CommandLine.cpp src/Directory.cpp src/Environment.cpp src/Logger.cpp src/Pipe.cpp src/Process.cpp src/TcpSocket.cpp src/Thread.cpp src/TimedAsyncExecutor.cpp ${SPDLOG_SRC})
