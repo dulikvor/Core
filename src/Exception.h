@@ -3,6 +3,7 @@
 #include <exception>
 #include <string>
 #include "Logger.h"
+#include "NoExcept.h"
 
 namespace core
 {
@@ -22,7 +23,7 @@ namespace core
         }
 
         Exception() = delete;
-        virtual ~Exception() noexcept {}
+        virtual ~Exception() NOEXCEPT {}
         //Accessor
         std::string GetMessage() const {return m_message;}
     private:

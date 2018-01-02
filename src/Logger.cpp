@@ -17,7 +17,6 @@
 #include "Environment.h"
 
 using namespace std;
-using namespace core;
 
 namespace core
 {
@@ -70,26 +69,39 @@ namespace core
         return make_tuple("???????", "???????", "???????");
     };
 
-    void Logger::Start(TraceSeverity severity, unique_ptr<LoggerImpl> loggerImpl)
+    void Logger::SetImpl(unique_ptr<LoggerImpl> loggerImpl)
     {
-        ASSERT(!m_running.exchange(true));
         swap(m_loggerImpl, loggerImpl);
+    }
+
+    void Logger::Start(TraceSeverity severity)
+    {
+        ASSERT(m_loggerImpl.get() != nullptr);
+        ASSERT(!m_running.exchange(true));
         m_loggerImpl->Start(severity);
         m_severity = severity;
     }
     void Logger::Log(TraceSeverity severity, const string& message)
     {
+        ASSERT(m_loggerImpl.get() != nullptr);
         m_loggerImpl->Log(severity, message.c_str());
     }
 
     void Logger::Flush()
     {
+        ASSERT(m_loggerImpl.get() != nullptr);
         m_loggerImpl->Flush();
     }
 
     void Logger::AddListener(const shared_ptr<TraceListener>& listener)
     {
+        ASSERT(m_loggerImpl.get() != nullptr);
         m_loggerImpl->AddListener(listener);
+    }
+
+    void Logger::Terminate()
+    {
+        m_loggerImpl.release();
     }
 
     string Logger::BuildMessage(const Source& source, const char* format, ...)

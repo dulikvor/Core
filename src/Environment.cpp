@@ -62,6 +62,8 @@ namespace core
             }
             ifaCurrent = ifaCurrent->ifa_next;
         }
+#else
+        m_ipv4Adrresses.emplace_back("127.0.0.1");
 #endif
     }
 }
