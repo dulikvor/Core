@@ -4,9 +4,9 @@
 
 struct Source
 {
-	const char* file;
-	const char* function;
-	int line;
+    const char* file;
+    const char* function;
+    int line;
 };
 
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
