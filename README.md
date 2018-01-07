@@ -1,4 +1,5 @@
-# Project Title
+# Core
+[![Build Status](https://travis-ci.org/Dudi119/Core.svg?branch=master)](https://travis-ci.org/Dudi119/Core)
 
 Core is a C++ lib, intended to solve basic and common software issues which may rise, when designing and implementing a server side application.
 Few examples - Logger support, Async Execution support, Exception handling, Enumeration and etc...
@@ -6,8 +7,7 @@ Few examples - Logger support, Async Execution support, Exception handling, Enum
 ### Installing
 Run the following commands:
 ```
-cmake .
-make
+./INSTALL.sh
 ```
 
 ## Deployment
