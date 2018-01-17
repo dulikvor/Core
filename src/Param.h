@@ -112,7 +112,8 @@ namespace core
     template<typename X>
     auto MakeParam(X&& val)
     {
-        return std::unique_ptr<IParam>(new Param<typename std::remove_cv<typename std::remove_reference<X>::type>::type>(std::forward<X>(val)));
+        return std::unique_ptr<IParam>(new Param<typename std::remove_cv<
+		        typename std::remove_reference<X>::type>::type>(std::forward<X>(val)));
     };
 }
 
