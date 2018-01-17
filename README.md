@@ -5,6 +5,7 @@ Core is a C++ lib, intended to solve basic and common software issues which may 
 Few examples - Logger support, Async Execution support, Exception handling, Enumeration and etc...
 
 ### Installing
+
 Run the following commands:
 ```
 ./INSTALL.sh
