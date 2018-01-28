@@ -9,7 +9,7 @@
 public: \
     name(Enumeration e):m_currentEnum(e){} \
     operator Enumeration() const {return m_currentEnum;} \
-    const std::string ToString() const;\
+    std::string ToString() const;\
     static Enumeration FromString(const std::string& str);\
 \
 public: \
@@ -42,7 +42,7 @@ private: \
     };\
     const int name::numOfEnumValues = std::extent<decltype(name::m_enumToString)>::value;\
     \
-    const std::string name::ToString() const\
+    std::string name::ToString() const\
     {\
         for(int index = 0; index < numOfEnumValues; index++)\
         {\
