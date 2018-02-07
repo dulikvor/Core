@@ -1,12 +1,12 @@
 #pragma once
 
+#include <cassert>
 #include <vector>
 #include <string>
 #include <iostream>
 #include <memory>
 #include <algorithm>
 #include <type_traits>
-#include "Assert.h"
 #include "Exception.h"
 
 namespace core
@@ -100,7 +100,7 @@ namespace core
         Y Get() const
         {
             int typeId = TypeId<Y, ARGUMENTS>::value;
-            ASSERT(typeId == m_typeId);
+            assert(typeId == m_typeId);
             return *reinterpret_cast<const Y*>(m_rawBuffer);
         }
 

@@ -1,3 +1,4 @@
+#include <cassert>
 
 #include <stdarg.h>
 #if defined(WIN32)
@@ -54,12 +55,12 @@ namespace core
                                           buffer, 1024) != -1);
             static regex fileNameLinePattern("([a-zA-Z0-9]*.[a-zA-Z0-9]*):([0-9]*)");
             cmatch fileNameLineMatch;
-            ASSERT(regex_search(buffer, fileNameLineMatch, fileNameLinePattern));
+            assert(regex_search(buffer, fileNameLineMatch, fileNameLinePattern));
 
             static regex functionPattern("([a-zA-Z]*::[a-zA-Z]*)");
             cmatch functionMatch;
             if(unMangledName.get() != nullptr)
-                ASSERT(regex_search(unMangledName.get(), functionMatch, functionPattern));
+                assert(regex_search(unMangledName.get(), functionMatch, functionPattern));
 
             return make_tuple(fileNameLineMatch[1].str(), fileNameLineMatch[2].str(), functionMatch.size() >= 1 ?
                       functionMatch[1].str() : "???????");
@@ -76,26 +77,26 @@ namespace core
 
     void Logger::Start(TraceSeverity severity)
     {
-        ASSERT(m_loggerImpl.get() != nullptr);
-        ASSERT(!m_running.exchange(true));
+        assert(m_loggerImpl.get() != nullptr);
+        assert(!m_running.exchange(true));
         m_loggerImpl->Start(severity);
         m_severity = severity;
     }
     void Logger::Log(TraceSeverity severity, const string& message)
     {
-        ASSERT(m_loggerImpl.get() != nullptr);
+        assert(m_loggerImpl.get() != nullptr);
         m_loggerImpl->Log(severity, message.c_str());
     }
 
     void Logger::Flush()
     {
-        ASSERT(m_loggerImpl.get() != nullptr);
+        assert(m_loggerImpl.get() != nullptr);
         m_loggerImpl->Flush();
     }
 
     void Logger::AddListener(const shared_ptr<TraceListener>& listener)
     {
-        ASSERT(m_loggerImpl.get() != nullptr);
+        assert(m_loggerImpl.get() != nullptr);
         m_loggerImpl->AddListener(listener);
     }
 
@@ -118,7 +119,7 @@ namespace core
         int size;
         PLATFORM_VERIFY(size = snprintf(buf, Local_buffer_size, "%s:%s:%d\t", source.file, source.function, source.line) >= 0);
 #endif
-        ASSERT(size != -1 && size < Local_buffer_size); //In windows version -1 is a legit answer
+        assert(size != -1 && size < Local_buffer_size); //In windows version -1 is a legit answer
 #if defined(WIN32)
         int tempSize = vsnprintf(buf + size, Local_buffer_size - size, format, arguments);
         tempSize != -1 ? size += tempSize : size = -1;
@@ -142,7 +143,7 @@ namespace core
             int largerSize;
             PLATFORM_VERIFY(largerSize = snprintf(&largerBuf[0], bufferSize, "%s:%s:%d\t", source.file, source.function, source.line) >= 0);
 #endif
-            ASSERT(largerSize != -1 && largerSize < bufferSize); //In windows version -1 is a legit answer
+            assert(largerSize != -1 && largerSize < bufferSize); //In windows version -1 is a legit answer
 #if defined(WIN32)
             vsnprintf(&largerBuf[largerSize], bufferSize - largerSize, format, arguments); //We will print what we can, no second resize.
 #else
