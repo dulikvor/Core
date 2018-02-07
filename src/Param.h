@@ -99,8 +99,7 @@ namespace core
                 std::is_copy_constructible<Y>>::value, int>::type = 0>
         Y Get() const
         {
-            int typeId = TypeId<Y, ARGUMENTS>::value;
-            assert(typeId == m_typeId);
+            assert((TypeId<Y, ARGUMENTS>::value) == m_typeId);
             return *reinterpret_cast<const Y*>(m_rawBuffer);
         }
 
