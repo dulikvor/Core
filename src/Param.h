@@ -100,7 +100,7 @@ namespace core
         Y Get() const
         {
             int typeId = TypeId<Y, ARGUMENTS>::value;
-            ASSERT(typeId == m_typeId);
+            assert(typeId == m_typeId);
             return *reinterpret_cast<const Y*>(m_rawBuffer);
         }
 
