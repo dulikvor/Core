@@ -107,14 +107,14 @@ namespace core
     };
 }
 
-#define TRACE_IMPL(severity, format, ...)\
+#define TRACE_IMPL(severity, ...)\
     if(severity >= core::Logger::Instance().GetSeverity()) \
-        core::Logger::Instance().Trace(severity, SOURCE, format, ##__VA_ARGS__)
+        core::Logger::Instance().Trace(severity, SOURCE, __VA_ARGS__)
 
 
-#define TRACE_ERROR(format, ...) \
-    TRACE_IMPL(TraceSeverity::Fatal, format, ##__VA_ARGS__)
-#define TRACE_INFO(format, ...) \
-    TRACE_IMPL(TraceSeverity::Info, format, ##__VA_ARGS__)
-#define TRACE_VERBOSE(format, ...) \
-    TRACE_IMPL(TraceSeverity::Verbose, format, ##__VA_ARGS__)
+#define TRACE_ERROR(...) \
+    TRACE_IMPL(TraceSeverity::Fatal, __VA_ARGS__)
+#define TRACE_INFO(...) \
+    TRACE_IMPL(TraceSeverity::Info, __VA_ARGS__)
+#define TRACE_VERBOSE(...) \
+    TRACE_IMPL(TraceSeverity::Verbose, __VA_ARGS__)

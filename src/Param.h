@@ -99,8 +99,7 @@ namespace core
                 std::is_copy_constructible<Y>>::value, int>::type = 0>
         Y Get() const
         {
-            int typeId = TypeId<Y, ARGUMENTS>::value;
-            assert(typeId == m_typeId);
+            assert((TypeId<Y, ARGUMENTS>::value) == m_typeId);
             return *reinterpret_cast<const Y*>(m_rawBuffer);
         }
 
@@ -114,8 +113,7 @@ namespace core
     {
         return std::unique_ptr<IParam>(new Param<typename std::remove_cv<
 		        typename std::remove_reference<X>::type>::type>(std::forward<X>(val)));
-    };
-
+    }
 
     template<typename X, typename std::enable_if<std::__and_<std::is_array<typename std::remove_reference<X>::type>,
             std::is_lvalue_reference<X>>::value, bool>::type = true>
@@ -123,7 +121,7 @@ namespace core
     {
         const char* _val = val; //Force a conversion to T = const char*&
         return std::unique_ptr<IParam>(new Param<const char*>(_val));
-    };
+    }
 }
 
 
