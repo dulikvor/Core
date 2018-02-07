@@ -55,7 +55,7 @@ namespace core
         {
             if(ifaCurrent->ifa_addr != NULL && ifaCurrent->ifa_addr->sa_family == AF_INET)
             {
-                void* addrPtr =&((struct sockaddr_in *)ifaCurrent->ifa_addr)->sin_addr;
+                // void* addrPtr =&((struct sockaddr_in *)ifaCurrent->ifa_addr)->sin_addr;
                 PLATFORM_VERIFY(getnameinfo(ifaCurrent->ifa_addr, sizeof(struct sockaddr_in), host, INET_ADDRSTRLEN,
                             NULL, 0, NI_NUMERICHOST) == 0);
                 m_ipv4Adrresses.emplace_back(host);

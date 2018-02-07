@@ -1,3 +1,4 @@
+#include <cassert>
 #include "TcpSocket.h"
 #include <sys/types.h>
 #if defined(__linux)
@@ -60,7 +61,7 @@ namespace core
 
     void TCPSocket::Connect(const std::string& host, uint16_t port)
     {
-        ASSERT(m_role == SocketRole::Client);
+        assert(m_role == SocketRole::Client);
         VERIFY(m_connected == false, "Socket is already bound");
         TRACE_INFO("Attempting to open a socket");
         //Establish a socket
@@ -110,7 +111,7 @@ namespace core
 
     int TCPSocket::Send(char* buf, size_t bufSize)
     {
-        ASSERT(m_role == SocketRole::Client);
+        assert(m_role == SocketRole::Client);
         VERIFY(m_connected == true, "Socket is not connected");
 #if defined(__linux)
         ssize_t bytesCount;
@@ -125,7 +126,7 @@ namespace core
 #if defined(__linux)
     pair<char*, ssize_t> TCPSocket::Receive(size_t sizeToRead)
     {
-        ASSERT(m_role == SocketRole::Client);
+        assert(m_role == SocketRole::Client);
         VERIFY(m_connected == true, "Socket is not connected");
         ssize_t bytesCount;
         char* buf = (char*)malloc(sizeof(char) * sizeToRead);
@@ -137,7 +138,7 @@ namespace core
 #if defined(__linux)
     void TCPSocket::Bind(const string& host, int port)
     {
-        ASSERT(m_role == SocketRole::Server);
+        assert(m_role == SocketRole::Server);
         VERIFY(m_connected == false, "Socket is already bound");
         TRACE_INFO("Attempting to open a socket");
         //Establish a socket
@@ -183,7 +184,7 @@ namespace core
 
     void TCPSocket::Listen()
     {
-        ASSERT(m_role == SocketRole::Server);
+        assert(m_role == SocketRole::Server);
         VERIFY(m_connected, "Socket is not bound to any host");
         TRACE_INFO("Attempting to listen on a socket %s:%d", m_hostAddress.c_str(), m_port);
 #if defined(__linux)
@@ -193,7 +194,7 @@ namespace core
 
     TCPSocket TCPSocket::Accept()
     {
-        ASSERT(m_role == SocketRole::Server);
+        assert(m_role == SocketRole::Server);
         VERIFY(m_connected, "Socket is not bound to any host");
 #if defined(__linux)
         sockaddr_in serverAddress;
