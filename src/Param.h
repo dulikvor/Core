@@ -1,12 +1,12 @@
 #pragma once
 
+#include <cassert>
 #include <vector>
 #include <string>
 #include <iostream>
 #include <memory>
 #include <algorithm>
 #include <type_traits>
-#include "Assert.h"
 #include "Exception.h"
 
 namespace core
