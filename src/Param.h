@@ -11,7 +11,7 @@
 
 namespace core
 {
-    #define ARGUMENTS short, int, long, float, double, bool, void*, std::string, std::vector<std::string>
+    #define ARGUMENTS short, int, long, float, double, bool, void*, const char*, std::string, std::vector<std::string>
 
     template<typename X, typename... Args>
     struct TypeId{};
@@ -52,7 +52,7 @@ namespace core
                 m_typeId(TypeId<Type, ARGUMENTS>::value)
         {
             m_rawBuffer = new char[sizeof(Type)];
-            new (m_rawBuffer) Type(std::forward<X>(value));
+            new (m_rawBuffer) Type(std::move(value));
         }
 
         Param(X& value, typename std::enable_if<std::is_copy_constructible<
@@ -60,7 +60,7 @@ namespace core
                 m_typeId(TypeId<Type, ARGUMENTS>::value)
         {
             m_rawBuffer = new char[sizeof(Type)];
-            new (m_rawBuffer) Type(std::forward<X>(value));
+            new (m_rawBuffer) Type(value);
         }
 
         Param(const X&& value, typename std::enable_if<std::is_copy_constructible<
@@ -68,7 +68,7 @@ namespace core
                 m_typeId(TypeId<Type, ARGUMENTS>::value)
         {
             m_rawBuffer = new char[sizeof(Type)];
-            new (m_rawBuffer) Type(std::forward<const X>(value));
+            new (m_rawBuffer) Type(std::move(value));
         }
 
         Param(const X& value, typename std::enable_if<std::is_copy_constructible<
@@ -76,7 +76,7 @@ namespace core
                 m_typeId(TypeId<Type, ARGUMENTS>::value)
         {
             m_rawBuffer = new char[sizeof(Type)];
-            new (m_rawBuffer) Type(std::forward<const X>(value));
+            new (m_rawBuffer) Type(value);
         }
 
         virtual ~Param()
@@ -109,11 +109,20 @@ namespace core
         char* m_rawBuffer;
     };
 
-    template<typename X>
+    template<typename X, typename std::enable_if<std::__not_<std::is_array<typename std::remove_reference<X>::type>>::value, bool>::type = true>
     inline std::unique_ptr<IParam> MakeParam(X&& val)
     {
         return std::unique_ptr<IParam>(new Param<typename std::remove_cv<
 		        typename std::remove_reference<X>::type>::type>(std::forward<X>(val)));
+    };
+
+
+    template<typename X, typename std::enable_if<std::__and_<std::is_array<typename std::remove_reference<X>::type>,
+            std::is_lvalue_reference<X>>::value, bool>::type = true>
+    inline std::unique_ptr<IParam> MakeParam(X&& val)
+    {
+        const char* _val = val; //Force a conversion to T = const char*&
+        return std::unique_ptr<IParam>(new Param<const char*>(_val));
     };
 }
 
