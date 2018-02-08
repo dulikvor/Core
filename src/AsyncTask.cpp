@@ -40,7 +40,7 @@ namespace core
         m_waitCv.wait(localLock, [&]{return m_state == AsyncTaskState::CANCELED ||
                     m_state == AsyncTaskState::COMPLETED;});
         if(m_state == AsyncTaskState::CANCELED)
-            throw Exception(SOURCE, "%s", m_failureReason.c_str());
+            throw Exception(__CORE_SOURCE, "%s", m_failureReason.c_str());
     }
 
     void AsyncTask::NotifyOnFailure()

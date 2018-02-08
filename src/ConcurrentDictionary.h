@@ -22,7 +22,7 @@ namespace core
         {
             std::unique_lock<std::mutex> localLock(m_mutex);
             m_dictionary.find(key) == m_dictionary.end() ? m_dictionary[key] = value :
-                throw Exception(SOURCE, "An existing key was provided");
+                throw Exception(__CORE_SOURCE, "An existing key was provided");
         }
         //RemoveValue receives a key and attempts to remove the assosiate entry from the stored dictionary.
         void RemoveValue(const Key& key)
