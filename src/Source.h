@@ -2,13 +2,15 @@
 
 #include <cstring>
 
-struct Source
-{
-    const char* file;
-    const char* function;
-    int line;
-};
+namespace core {
 
-#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
-#define SOURCE Source{__FILENAME__, __FUNCTION__, __LINE__}
+    struct Source {
+        const char *file;
+        const char *function;
+        int line;
+    };
+}
+
+#define __CORE__FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+#define __CORE_SOURCE core::Source{__CORE__FILENAME__, __FUNCTION__, __LINE__}
 

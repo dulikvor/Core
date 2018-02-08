@@ -74,7 +74,7 @@ namespace core
             char** stackFramesSymbols = backtrace_symbols(stackFramesAddresses, readFramesCount);
             for(int index = 0; index < readFramesCount; index++){
                 auto frameInformation = GetFunctionAndLine(stackFramesSymbols[index]);
-                Trace(TraceSeverity::Fatal, SOURCE, "%s:%s:%s", std::get<0>(frameInformation).c_str(),
+                Trace(TraceSeverity::Fatal, __CORE_SOURCE, "%s:%s:%s", std::get<0>(frameInformation).c_str(),
                       std::get<1>(frameInformation).c_str(), std::get<2>(frameInformation).c_str());
             }
             free(stackFramesAddresses);
@@ -107,10 +107,10 @@ namespace core
     };
 }
 
+
 #define TRACE_IMPL(severity, ...)\
     if(severity >= core::Logger::Instance().GetSeverity()) \
-        core::Logger::Instance().Trace(severity, SOURCE, __VA_ARGS__)
-
+        core::Logger::Instance().Trace(severity, __CORE_SOURCE, __VA_ARGS__)
 
 #define TRACE_ERROR(...) \
     TRACE_IMPL(TraceSeverity::Fatal, __VA_ARGS__)

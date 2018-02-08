@@ -16,7 +16,7 @@ const string& CommandLine::GetArgument(const string& argumentName) const
     ArgumentList::const_iterator it = find_if(m_arguments.begin(), m_arguments.end(), [&argumentName]
             (const pair<string, string>& elem)->bool{return elem.first == argumentName;});
     if(it == m_arguments.end())
-        throw Exception(SOURCE, "Invalid argument name was provided - %s", argumentName.c_str());
+        throw Exception(__CORE_SOURCE, "Invalid argument name was provided - %s", argumentName.c_str());
     return (*it).second;
 }
 
