@@ -49,7 +49,7 @@ private: \
             if(m_enumToString[index].enumValue == m_currentEnum)\
                 return m_enumToString[index].enumStrName;\
         }\
-        throw core::Exception(SOURCE,"Not all enum values are covered");\
+        throw core::Exception(__CORE_SOURCE,"Not all enum values are covered");\
     }\
     \
     name::Enumeration name::FromString(const std::string& str){\
@@ -57,7 +57,7 @@ private: \
             if(m_enumToString[index].enumStrName == str) \
                 return m_enumToString[index].enumValue; \
         }\
-        throw core::Exception(SOURCE, "requested string value is not supported - %s", str.c_str());\
+        throw core::Exception(__CORE_SOURCE, "requested string value is not supported - %s", str.c_str());\
     }
 
 
