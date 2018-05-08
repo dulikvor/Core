@@ -50,6 +50,14 @@ namespace core
             }
         }
 
+        bool Exists( const char* key ) const
+        {
+            typedef std::pair<const char*, std::unique_ptr<IParam>> ParamPair;
+            auto comparator = [&key](const ParamPair& pair) -> bool {return strcmp(pair.first, key) == 0;}; //redundancy from above, but never mind :)
+            std::vector<ParamPair>::const_iterator it = std::find_if(m_values.begin(), m_values.end(), comparator);
+            return it != m_values.end();
+        }
+
     private:
         std::vector<std::pair<const char*, std::unique_ptr<IParam>>> m_values;
     };
