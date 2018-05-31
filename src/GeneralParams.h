@@ -30,7 +30,7 @@ namespace core
             }
             else
             {
-                throw core::Exception(SOURCE, "A requested key was already existed - %s", key);
+                throw core::Exception(__CORE_SOURCE, "A requested key was already existed - %s", key);
             }
         }
 
@@ -42,12 +42,20 @@ namespace core
             auto comparator = [&key](const ParamPair& pair) -> bool {return strcmp(pair.first, key) == 0;}; //redundancy from above, but never mind :)
             std::vector<ParamPair>::const_iterator it = std::find_if(m_values.begin(), m_values.end(), comparator);
             if(it == m_values.end())
-                throw Exception(SOURCE, "Non existing parameter was requested %s", key);
+                throw Exception(__CORE_SOURCE, "Non existing parameter was requested %s", key);
             else
             {
                 Param<T>& param = static_cast<Param<T>&>(*it->second);
                 return param.Get<T>();
             }
+        }
+
+        bool Exists( const char* key ) const
+        {
+            typedef std::pair<const char*, std::unique_ptr<IParam>> ParamPair;
+            auto comparator = [&key](const ParamPair& pair) -> bool {return strcmp(pair.first, key) == 0;}; //redundancy from above, but never mind :)
+            std::vector<ParamPair>::const_iterator it = std::find_if(m_values.begin(), m_values.end(), comparator);
+            return it != m_values.end();
         }
 
     private:

@@ -13,8 +13,8 @@ namespace core
     public:
         /*Exception constructor will megerge the received exception message and print out the message and the entire
         stack frames to the log.*/
-        template<typename ... Args>
-        Exception(const Source& source, const char* format, Args ... args)
+        template<typename... Args>
+        Exception(const Source& source, const char* format, Args&& ... args)
         {
             m_message = Logger::Instance().BuildMessage(source, format, args...);
             TRACE_ERROR("%s", m_message.c_str());
@@ -26,7 +26,7 @@ namespace core
         virtual ~Exception() NOEXCEPT {}
         //Accessor
         std::string GetMessage() const {return m_message;}
-    private:
+    protected:
         std::string m_message;
     };
 }

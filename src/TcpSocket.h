@@ -64,8 +64,8 @@ namespace core
     private:
         const int Invalid_Socket = -1;
         const int Max_Incoming_connections = 500;
-        int m_fd;
         SocketRole m_role;
+        int m_fd;
         std::atomic_bool m_connected;
         std::string m_hostAddress;
         int m_port;

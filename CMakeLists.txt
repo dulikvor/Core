@@ -40,3 +40,7 @@ if(CORE_COMPILE)
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
     add_library(Core SHARED src/AsyncExecutor.cpp src/AsyncTask.cpp src/AutoResetEvent.cpp src/ChildProcess.cpp src/CommandLine.cpp src/Directory.cpp src/Environment.cpp src/Logger.cpp src/Pipe.cpp src/Process.cpp src/TcpSocket.cpp src/Thread.cpp src/TimedAsyncExecutor.cpp ${SPDLOG_SRC})
 endif()
+
+if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -pedantic")
+endif()

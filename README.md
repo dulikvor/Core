@@ -15,3 +15,4 @@ Run the following commands:
 
 A static lib binary will be created under the /bin directory.
 All headers are copied to /include directory.
+

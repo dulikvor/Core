@@ -1,9 +1,10 @@
-#include "AsyncExecutor.h"
+#include <cassert>
 #include <string>
 #include <functional>
+#include "AsyncExecutor.h"
 #include "Exception.h"
 #include "AsyncTask.h"
-#include "Assert.h"
+
 
 using namespace std;
 
@@ -12,7 +13,7 @@ namespace core
     AsyncExecutor::AsyncExecutor(int threadPoolSize, bool activeAll)
         :m_threadsPoolSize(threadPoolSize)
     {
-        ASSERT(threadPoolSize > 0);
+        assert(threadPoolSize > 0);
         activeAll ? m_lastActiveThread = threadPoolSize - 1 : m_lastActiveThread = -1;
         m_activeThreads.resize(threadPoolSize, activeAll);
         m_threadsLocks.resize(threadPoolSize, new mutex());

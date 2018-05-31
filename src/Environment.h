@@ -22,7 +22,7 @@ namespace core
         void ReadIPV4Addresses();
     
     private:
-        const int MAX_WORKING_DIR_SIZE = 500;
+        static const int MAX_WORKING_DIR_SIZE = 500;
         int m_coreCount;
         std::string m_processPath;
         std::string m_processName;
