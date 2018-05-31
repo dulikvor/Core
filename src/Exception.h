@@ -2,6 +2,7 @@
 
 #include <exception>
 #include <string>
+#include "Source.h"
 #include "Logger.h"
 #include "NoExcept.h"
 
