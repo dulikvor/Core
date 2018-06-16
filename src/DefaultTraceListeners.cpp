@@ -5,7 +5,7 @@ namespace core
 {
     void StdOutListener::Log(TraceSeverity severity, const std::string &msg)
     {
-        if( m_severity >= severity)
+        if( m_severity <= severity)
             std::cout<<msg<<std::endl;
     }
 

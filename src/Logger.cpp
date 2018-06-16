@@ -35,6 +35,7 @@ namespace core
 
     Logger::Logger(): m_severity(TraceSeverity::NoneWorking)
     {
+        Environment::Instance().Init();
     }
 
     tuple<Logger::FileName, Logger::Line, Logger::FunctionName> Logger::GetFunctionAndLine(char* mangledSymbol){
@@ -44,8 +45,9 @@ namespace core
         static regex functionManglingPattern("\\((.*)\\+(0x[0-9a-f]*)\\)\\s*\\[(0x[0-9a-f]*)\\]");
         cmatch functionMangaledMatch;
         if(regex_search(mangledSymbol, functionMangaledMatch, functionManglingPattern)) {
+            std::string functionMangaledName = functionMangaledMatch[1].str();
             unique_ptr<char, void (*)(void *)> unMangledName(
-                    abi::__cxa_demangle(functionMangaledMatch[1].str().c_str(), nullptr, 0, &status), &std::free);
+                    abi::__cxa_demangle(functionMangaledName.c_str(), nullptr, 0, &status), &std::free);
 
             //Get file and line
             ChildProcess childProcess = Process::SpawnChildProcess("addr2line", "addr2line", (string("--exe=") + Environment::Instance().GetProcessPath().c_str()
@@ -54,17 +56,16 @@ namespace core
             char buffer[1024] = {0};
             PLATFORM_VERIFY(read(childProcess.GetStdOutPipe().GetReadDescriptor(),
                                           buffer, 1024) != -1);
-            static regex fileNameLinePattern("([a-zA-Z0-9]*.[a-zA-Z0-9]*):([0-9]*)");
-            cmatch fileNameLineMatch;
-            assert(regex_search(buffer, fileNameLineMatch, fileNameLinePattern));
+            if( strlen(buffer) > 0)
+            {
+                static regex fileNameLinePattern("([a-zA-Z0-9]*.[a-zA-Z0-9]*):([0-9]*)");
+                cmatch fileNameLineMatch;
+                assert(regex_search(buffer, fileNameLineMatch, fileNameLinePattern));
 
-            static regex functionPattern("([a-zA-Z]*::[a-zA-Z]*)");
-            cmatch functionMatch;
-            if(unMangledName.get() != nullptr)
-                assert(regex_search(unMangledName.get(), functionMatch, functionPattern));
+                return make_tuple(fileNameLineMatch[1].str(), fileNameLineMatch[2].str(), unMangledName ? std::string(unMangledName.get()) : functionMangaledName);
+            }
 
-            return make_tuple(fileNameLineMatch[1].str(), fileNameLineMatch[2].str(), functionMatch.size() >= 1 ?
-                      functionMatch[1].str() : "???????");
+            return make_tuple("???????", "???????", unMangledName ? std::string(unMangledName.get()) : functionMangaledName);
 
         }
 #endif
