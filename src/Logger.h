@@ -113,8 +113,8 @@ namespace core
         core::Logger::Instance().Trace(severity, __CORE_SOURCE, __VA_ARGS__)
 
 #define TRACE_ERROR(...) \
-    TRACE_IMPL(TraceSeverity::Fatal, __VA_ARGS__)
+    TRACE_IMPL(core::TraceSeverity::Fatal, __VA_ARGS__)
 #define TRACE_INFO(...) \
-    TRACE_IMPL(TraceSeverity::Info, __VA_ARGS__)
+    TRACE_IMPL(core::TraceSeverity::Info, __VA_ARGS__)
 #define TRACE_VERBOSE(...) \
-    TRACE_IMPL(TraceSeverity::Verbose, __VA_ARGS__)
+    TRACE_IMPL(core::TraceSeverity::Verbose, __VA_ARGS__)
