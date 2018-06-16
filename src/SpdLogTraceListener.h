@@ -31,5 +31,8 @@ namespace core
     public:
         FileRotationTraceListener(TraceSeverity severity, const std::string& filePrefFix, int maxFileSize, int maxFilesCount);
         virtual ~FileRotationTraceListener(){}
+        void Log(TraceSeverity severity, const std::string &msg) override;
+        void Flush() override;
+        void SetSeverity(TraceSeverity severity) override;
     };
 }

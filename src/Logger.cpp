@@ -16,6 +16,7 @@
 #include "TraceListener.h"
 #include "Process.h"
 #include "Environment.h"
+#include "DefaultLogger.h"
 
 using namespace std;
 
@@ -77,8 +78,9 @@ namespace core
 
     void Logger::Start(TraceSeverity severity)
     {
-        assert(m_loggerImpl.get() != nullptr);
-        assert(!m_running.exchange(true));
+        if(m_loggerImpl == false)
+            m_loggerImpl.reset(new DefaultLogger());
+        assert(!m_running.exchange(true, std::memory_order_relaxed));
         m_loggerImpl->Start(severity);
         m_severity = severity;
     }
@@ -117,7 +119,7 @@ namespace core
             source.function, source.line);
 #else
         int size;
-        PLATFORM_VERIFY(size = snprintf(buf, Local_buffer_size, "%s:%s:%d\t", source.file, source.function, source.line) >= 0);
+        PLATFORM_VERIFY((size = snprintf(buf, Local_buffer_size, "%s:%s:%d\t", source.file, source.function, source.line)) >= 0);
 #endif
         assert(size != -1 && size < Local_buffer_size); //In windows version -1 is a legit answer
 #if defined(WIN32)
