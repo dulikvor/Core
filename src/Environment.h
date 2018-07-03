@@ -3,14 +3,15 @@
 #include <atomic>
 #include <string>
 #include <vector>
+#include "Export.h"
 
 namespace core
 {
     class Environment
     {
     public:
-        static Environment& Instance();
-        void Init();
+        CORE_EXPORT static Environment& Instance();
+        CORE_EXPORT void Init();
         //Accessors
         int GetCoreCount() const { return m_coreCount; }
         const std::string& GetProcessPath() const { return m_processPath; }

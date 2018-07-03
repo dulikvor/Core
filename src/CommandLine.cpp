@@ -11,13 +11,13 @@ CommandLine& CommandLine::Instance() {
     return instance;
 }
 
-const string& CommandLine::GetArgument(const string& argumentName) const
+char const * const CommandLine::GetArgument(char const * const argumentName) const
 {
     ArgumentList::const_iterator it = find_if(m_arguments.begin(), m_arguments.end(), [&argumentName]
-            (const pair<string, string>& elem)->bool{return elem.first == argumentName;});
+            (const pair<string, string>& elem)->bool{return strcmp(elem.first.c_str(), argumentName) == 0;});
     if(it == m_arguments.end())
-        throw Exception(__CORE_SOURCE, "Invalid argument name was provided - %s", argumentName.c_str());
-    return (*it).second;
+        throw Exception(__CORE_SOURCE, "Invalid argument name was provided - %s", argumentName);
+    return (*it).second.c_str();
 }
 
 void CommandLine::Parse(int argc, char const** argv)

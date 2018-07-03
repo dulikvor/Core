@@ -34,8 +34,8 @@ namespace core
             }
         }
 
-        template<typename T, typename std::enable_if<std::__and_<std::is_object<T>,
-                std::is_copy_constructible<T>>::value, int>::type = 0>
+        template<typename T, typename std::enable_if<std::is_object<T> &&
+                std::is_copy_constructible<T>::value, int>::type = 0>
         T Get(const char* key) const
         {
             typedef std::pair<const char*, std::unique_ptr<IParam>> ParamPair;
