@@ -43,6 +43,9 @@ endif()
 
 #Compile staticly
 if(CORE_COMPILE_STEP)
+    if(WIN32)
+        add_definitions(-DCORE_DLL)
+    endif()
     include_directories(${CORE_3RD_PARTY_DIR}/include .)
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
     add_library(Core SHARED src/AsyncExecutor.cpp src/AsyncTask.cpp src/AutoResetEvent.cpp src/ChildProcess.cpp src/CommandLine.cpp src/Directory.cpp src/Environment.cpp src/Logger.cpp src/Pipe.cpp src/Process.cpp src/TcpSocket.cpp src/Thread.cpp src/TimedAsyncExecutor.cpp src/DefaultLogger.cpp src/DefaultTraceListeners.cpp ${SPDLOG_SRC})
