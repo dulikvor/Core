@@ -95,8 +95,8 @@ namespace core
             std::swap(m_rawBuffer, obj.m_rawBuffer);
         }
 
-        template<typename Y, typename std::enable_if<std::__and_<std::is_object<Y>,
-                std::is_copy_constructible<Y>>::value, int>::type = 0>
+        template<typename Y, typename std::enable_if<std::is_object<Y>::value &&
+                std::is_copy_constructible<Y>::value, int>::type = 0>
         Y Get() const
         {
             assert((TypeId<Y, ARGUMENTS>::value) == m_typeId);
@@ -108,15 +108,15 @@ namespace core
         char* m_rawBuffer;
     };
 
-    template<typename X, typename std::enable_if<std::__not_<std::is_array<typename std::remove_reference<X>::type>>::value, bool>::type = true>
+    template<typename X, typename std::enable_if<!std::is_array<typename std::remove_reference<X>::type>::value, bool>::type = true>
     inline std::unique_ptr<IParam> MakeParam(X&& val)
     {
         return std::unique_ptr<IParam>(new Param<typename std::remove_cv<
 		        typename std::remove_reference<X>::type>::type>(std::forward<X>(val)));
     }
 
-    template<typename X, typename std::enable_if<std::__and_<std::is_array<typename std::remove_reference<X>::type>,
-            std::is_lvalue_reference<X>>::value, bool>::type = true>
+    template<typename X, typename std::enable_if<std::is_array<typename std::remove_reference<X>::type>::value &&
+            std::is_lvalue_reference<X>::value, bool>::type = true>
     inline std::unique_ptr<IParam> MakeParam(X&& val)
     {
         const char* _val = val; //Force a conversion to T = const char*&

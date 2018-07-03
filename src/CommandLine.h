@@ -3,16 +3,17 @@
 #include <list>
 #include <utility>
 #include <string>
+#include "Export.h"
 
 namespace core
 {
     class CommandLine
     {
     public:
-        ~CommandLine(){}
-        static CommandLine& Instance();
-        void Parse(int argc, char const** argv);
-        const std::string& GetArgument(const std::string& argumentName) const;
+        CORE_EXPORT ~CommandLine(){}
+        CORE_EXPORT static CommandLine& Instance();
+        CORE_EXPORT void Parse(int argc, char const** argv);
+        CORE_EXPORT char const * const GetArgument(char const * const argumentName) const;
 
     private:
         CommandLine(){}

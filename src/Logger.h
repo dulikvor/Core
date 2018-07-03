@@ -12,6 +12,7 @@
 #endif
 #include "Source.h"
 #include "LoggerImpl.h"
+#include "Export.h"
 
 namespace core
 {
@@ -34,13 +35,13 @@ namespace core
             static const bool value = sizeof...(Args) == 0;
         };
     public:
-        static Logger& Instance();
-        ~Logger(); //add nullptr to release the blocked wait. not by cancel of the thread.
+        CORE_EXPORT static Logger& Instance();
+        CORE_EXPORT ~Logger(); //add nullptr to release the blocked wait. not by cancel of the thread.
         void AddListener(const std::shared_ptr<TraceListener>& listener);
         std::string BuildMessage(const Source& source, const char* format, ...);
         void SetImpl(std::unique_ptr<LoggerImpl> loggerImpl);
-        void Start(TraceSeverity severity);
-        void Terminate();
+        CORE_EXPORT void Start(TraceSeverity severity);
+        CORE_EXPORT void Terminate();
         template<typename... Args>
         void Trace(TraceSeverity severity, const Source& source, const char* format, Args... args)
         {
