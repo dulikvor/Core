@@ -34,7 +34,7 @@ namespace core
             }
         }
 
-        template<typename T, typename std::enable_if<std::is_object<T> &&
+        template<typename T, typename std::enable_if<std::is_object<T>::value &&
                 std::is_copy_constructible<T>::value, int>::type = 0>
         T Get(const char* key) const
         {
