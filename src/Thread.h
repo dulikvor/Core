@@ -1,10 +1,13 @@
 #pragma once
 
+#include <stdarg.h>
+#include <cassert>
 #include <memory>
 #include <functional>
 #include <thread>
 #include <string>
 #include <atomic>
+#include "Assert.h"
 
 const int MAX_THREAD_NAME = 30;
 
@@ -44,4 +47,35 @@ namespace core
         std::function<void(void)> m_requestedPoint;
         std::unique_ptr<std::thread> m_thread;
     };
+
+    inline Thread::Thread(const std::string& threadName, const std::function<void(void)>& requestedPoint)
+            : m_name(threadName), m_requestedPoint(requestedPoint)
+    {
+        assert((int)m_name.size() <= MAX_THREAD_NAME);
+    }
+
+    inline void Thread::Start()
+    {
+        m_thread.reset(new std::thread(std::bind(&Thread::EntryPoint, this)));
+    }
+
+    inline void Thread::Join() const
+    {
+        m_thread->join();
+    }
+
+    inline void Thread::EntryPoint()
+    {
+        try
+        {
+            m_requestedPoint();
+        }
+        catch(const Exception&)
+        {
+        }
+        catch(std::exception& e)
+        {
+            TRACE_ERROR("%s", e.what());
+        }
+    }
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdarg>
+#include <cassert>
 #include <list>
 #include <memory>
 #include <atomic>
@@ -7,6 +9,7 @@
 #include <mutex>
 #include <tuple>
 #include <ctime>
+#include <vector>
 #if defined(__linux)
 #include <execinfo.h>
 #endif
@@ -47,7 +50,7 @@ namespace core
         {
             ValidateParams<Args...>();
             std::string message = BuildMessage(source, format, args...);
-            Log(severity, message);
+            Log(severity, message.c_str());
         }
         template<typename... Args>
         static typename std::enable_if<Comperator<Args...>::value>::type ValidateParams(){} //Due to VS2013 limitation on expression SFIANE
@@ -82,12 +85,9 @@ namespace core
             free(stackFramesSymbols);
 #endif
         }
-        //
-        void Log(TraceSeverity severity, const std::string& message);
-        //Flush the log.
-        void Flush();
-        //Properties
-        TraceSeverity GetSeverity() const { return m_severity; }
+        CORE_EXPORT void Log(TraceSeverity severity, const char* message);
+        CORE_EXPORT void Flush();
+        CORE_EXPORT TraceSeverity GetSeverity() const { return m_severity; }
 
     private:
         using FunctionName = std::string;
@@ -106,6 +106,58 @@ namespace core
         mutable std::mutex m_mut;
         static const int Local_buffer_size = 2000;
     };
+
+
+    inline std::string Logger::BuildMessage(const Source& source, const char* format, ...)
+    {
+        va_list arguments;
+        va_start(arguments, format);
+        std::string result;
+
+        char buf[Local_buffer_size] = "";
+#if defined(WIN32)
+        int size = _snprintf(buf, Local_buffer_size, "%s:%s:%d\t", source.file,
+            source.function, source.line);
+#else
+        int size;
+        assert((size = snprintf(buf, Local_buffer_size, "%s:%s:%d\t", source.file, source.function, source.line)) >= 0);
+#endif
+        assert(size != -1 && size < Local_buffer_size); //In windows version -1 is a legit answer
+#if defined(WIN32)
+        int tempSize = vsnprintf(buf + size, Local_buffer_size - size, format, arguments);
+        tempSize != -1 ? size += tempSize : size = -1;
+#else
+        int tempSize;
+        assert(tempSize = vsnprintf(buf + size, Local_buffer_size - size, format, arguments) >= 0);
+        size += tempSize;
+#endif
+
+        if(size != -1 && size < Local_buffer_size)
+            result = buf;
+        else //message was trunced or operation failed
+        {
+            int bufferSize = std::max(size, 32 * 1024);
+            std::vector<char> largerBuf;
+            largerBuf.resize(bufferSize);
+
+#if defined(WIN32)
+            int largerSize = _snprintf(&largerBuf[0], bufferSize, "%s:%s:%d\t", source.file, source.function, source.line);
+#else
+            int largerSize;
+            assert(largerSize = snprintf(&largerBuf[0], bufferSize, "%s:%s:%d\t", source.file, source.function, source.line) >= 0);
+#endif
+            assert(largerSize != -1 && largerSize < bufferSize); //In windows version -1 is a legit answer
+#if defined(WIN32)
+            vsnprintf(&largerBuf[largerSize], bufferSize - largerSize, format, arguments); //We will print what we can, no second resize.
+#else
+            assert(vsnprintf(&largerBuf[largerSize], bufferSize - largerSize, format, arguments) >= 0); //We will print what we can, no second resize.
+#endif
+            result = std::string(largerBuf.begin(), largerBuf.end());
+        }
+
+        va_end(arguments);
+        return result;
+    }
 }
 
 
