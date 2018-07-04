@@ -9,7 +9,7 @@ int main( int argc, const char *argv[] )
 {
     core::GeneralParams params;
     params.AddParam("str", "Hello world");
-    std::string str = params.Get<std::string>("str");
+    std::string str = params.Get<const char*>("str");
     core::Logger::Instance().Start(core::TraceSeverity::Info);
     TRACE_INFO("Hello world");
     try
