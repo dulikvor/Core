@@ -10,6 +10,7 @@
 #include <tuple>
 #include <ctime>
 #include <vector>
+#include <algorithm>
 #if defined(__linux)
 #include <execinfo.h>
 #endif
