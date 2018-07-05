@@ -136,7 +136,7 @@ namespace core
             result = buf;
         else //message was trunced or operation failed
         {
-            int bufferSize = std::max(size, 32 * 1024);
+            int bufferSize = std::max<int>(size, 32 * 1024);
             std::vector<char> largerBuf;
             largerBuf.resize(bufferSize);
 
