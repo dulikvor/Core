@@ -117,7 +117,7 @@ namespace core
 
         char buf[Local_buffer_size] = "";
 #if defined(WIN32)
-        int size = _snprintf(buf, Local_buffer_size, "%s:%s:%d\t", source.file,
+        int size = _snprintf_s(buf, Local_buffer_size,  Local_buffer_size - 1, "%s:%s:%d\t", source.file,
             source.function, source.line);
 #else
         int size;
@@ -125,7 +125,7 @@ namespace core
 #endif
         assert(size != -1 && size < Local_buffer_size); //In windows version -1 is a legit answer
 #if defined(WIN32)
-        int tempSize = vsnprintf(buf + size, Local_buffer_size - size, format, arguments);
+        int tempSize = vsprintf_s(buf + size, Local_buffer_size - size, format, arguments);
         tempSize != -1 ? size += tempSize : size = -1;
 #else
         int tempSize;
@@ -142,14 +142,14 @@ namespace core
             largerBuf.resize(bufferSize);
 
 #if defined(WIN32)
-            int largerSize = _snprintf(&largerBuf[0], bufferSize, "%s:%s:%d\t", source.file, source.function, source.line);
+            int largerSize = _snprintf_s(&largerBuf[0], bufferSize, bufferSize - 1, "%s:%s:%d\t", source.file, source.function, source.line);
 #else
             int largerSize;
             assert(largerSize = snprintf(&largerBuf[0], bufferSize, "%s:%s:%d\t", source.file, source.function, source.line) >= 0);
 #endif
             assert(largerSize != -1 && largerSize < bufferSize); //In windows version -1 is a legit answer
 #if defined(WIN32)
-            vsnprintf(&largerBuf[largerSize], bufferSize - largerSize, format, arguments); //We will print what we can, no second resize.
+            vsprintf_s(&largerBuf[largerSize], bufferSize - largerSize, format, arguments); //We will print what we can, no second resize.
 #else
             assert(vsnprintf(&largerBuf[largerSize], bufferSize - largerSize, format, arguments) >= 0); //We will print what we can, no second resize.
 #endif
