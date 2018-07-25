@@ -4,7 +4,6 @@
 #endif
 #include <stdlib.h>
 #include <stdio.h>
-#include <iostream>
 #include <regex>
 
 #include "Logger.h"
@@ -74,7 +73,7 @@ namespace core
 
     void Logger::Start(TraceSeverity severity)
     {
-        if(m_loggerImpl == false)
+        if(m_loggerImpl.get() == nullptr)
             m_loggerImpl.reset(new DefaultLogger());
         assert(!m_running.exchange(true, std::memory_order_relaxed));
         m_loggerImpl->Start(severity);
