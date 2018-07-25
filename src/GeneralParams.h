@@ -46,7 +46,7 @@ namespace core
             else
             {
                 Param<T>& param = static_cast<Param<T>&>(*it->second);
-                return param.Get<T>();
+                return param.template Get<T>();
             }
         }
 

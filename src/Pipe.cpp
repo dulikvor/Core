@@ -13,12 +13,12 @@ namespace core{
     Pipe::~Pipe(){
         if (m_fdOpen[0]){
 #if defined (__linux)
-            PLATFORM_VERIFY(close(m_fds[0]) == 0);
+            close(m_fds[0]);
 #endif
         }
         if (m_fdOpen[1]){
 #if defined (__linux)
-            PLATFORM_VERIFY(close(m_fds[1]) == 0);
+            close(m_fds[1]);
 #endif
         }
     }
