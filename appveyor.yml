@@ -33,4 +33,4 @@ build_script:
 test:
     assemblies:
       only:
-        - libCore.dll
+        - C:\projects\core\Release\Core.dll
