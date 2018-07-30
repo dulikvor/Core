@@ -33,4 +33,4 @@ build_script:
 test:
     assemblies:
       only:
-        bin\libCore.dll
+        - libCore.dll
