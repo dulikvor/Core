@@ -33,11 +33,12 @@ namespace core
         Environment::Instance().Init();
     }
 
-    tuple<Logger::FileName, Logger::Line, Logger::FunctionName> Logger::GetFunctionAndLine(char* mangledSymbol){
+    tuple<Logger::FileName, Logger::Line, Logger::FunctionName> Logger::GetFunctionAndLine(char* mangledSymbol)
+    {
+        static std::string unknown("???????");
 #if defined(WIN32)
 #else
         int status;
-        static std::string unknown("???????");
         static regex functionManglingPattern("\\((.*)\\+(0x[0-9a-f]*)\\)\\s*\\[(0x[0-9a-f]*)\\]");
         cmatch functionMangaledMatch;
         if(regex_search(mangledSymbol, functionMangaledMatch, functionManglingPattern)) {
