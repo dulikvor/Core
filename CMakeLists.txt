@@ -8,10 +8,13 @@ set (CMAKE_CXX_EXTENSIONS OFF)
 
 if (NOT CMAKE_BUILD_TYPE)
     message(STATUS "Default build type 'Debug'")
-    set(CMAKE_BUILD_TYPE DEBUG CACHE STRING "" FORCE )
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING "" FORCE )
 else()
-    string(TOUPPER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE)
     message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+endif()
+
+if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    set(CMAKE_DEBUG_POSTFIX d)
 endif()
 
 if(NOT WIN32)
@@ -54,5 +57,5 @@ endif()
 
 
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -pedantic")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wno-unused-variable -pedantic")
 endif()

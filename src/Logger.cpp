@@ -2,6 +2,7 @@
 #else
 #include <cxxabi.h>
 #endif
+#include <iostream>
 #include <stdlib.h>
 #include <stdio.h>
 #include <regex>
@@ -32,7 +33,9 @@ namespace core
         Environment::Instance().Init();
     }
 
-    tuple<Logger::FileName, Logger::Line, Logger::FunctionName> Logger::GetFunctionAndLine(char* mangledSymbol){
+    tuple<Logger::FileName, Logger::Line, Logger::FunctionName> Logger::GetFunctionAndLine(char* mangledSymbol)
+    {
+        static std::string unknown("???????");
 #if defined(WIN32)
 #else
         int status;
@@ -55,15 +58,16 @@ namespace core
                 static regex fileNameLinePattern("([a-zA-Z0-9]*.[a-zA-Z0-9]*):([0-9]*)");
                 cmatch fileNameLineMatch;
                 assert(regex_search(buffer, fileNameLineMatch, fileNameLinePattern));
-
-                return make_tuple(fileNameLineMatch[1].str(), fileNameLineMatch[2].str(), unMangledName ? std::string(unMangledName.get()) : functionMangaledName);
+                std::string fileName = fileNameLineMatch.size() > 1 ? fileNameLineMatch[1].str() : std::string();
+                std::string line = fileNameLineMatch.size() > 2 ? fileNameLineMatch[2].str() : std::string();
+                return make_tuple( fileName.size() ? fileName : unknown, line.size() ? line : unknown, unMangledName && strlen(unMangledName.get()) > 0 ? std::string(unMangledName.get()) : functionMangaledName);
             }
 
-            return make_tuple("???????", "???????", unMangledName ? std::string(unMangledName.get()) : functionMangaledName);
+            return make_tuple(unknown, unknown, unMangledName && strlen(unMangledName.get()) > 0 ? std::string(unMangledName.get()) : functionMangaledName);
 
         }
 #endif
-        return make_tuple("???????", "???????", "???????");
+        return make_tuple(unknown, unknown, unknown);
     }
 
     void Logger::SetImpl(unique_ptr<LoggerImpl> loggerImpl)

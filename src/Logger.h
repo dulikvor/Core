@@ -120,16 +120,16 @@ namespace core
         int size = _snprintf_s(buf, Local_buffer_size,  Local_buffer_size - 1, "%s:%s:%d\t", source.file,
             source.function, source.line);
 #else
-        int size;
-        assert((size = snprintf(buf, Local_buffer_size, "%s:%s:%d\t", source.file, source.function, source.line)) >= 0);
+        int size = snprintf(buf, Local_buffer_size, "%s:%s:%d\t", source.file, source.function, source.line);
+        assert(size >= 0);
 #endif
         assert(size != -1 && size < Local_buffer_size); //In windows version -1 is a legit answer
 #if defined(WIN32)
         int tempSize = vsprintf_s(buf + size, Local_buffer_size - size, format, arguments);
         tempSize != -1 ? size += tempSize : size = -1;
 #else
-        int tempSize;
-        assert(tempSize = vsnprintf(buf + size, Local_buffer_size - size, format, arguments) >= 0);
+        int tempSize = vsnprintf(buf + size, Local_buffer_size - size, format, arguments);
+        assert(tempSize >=0);
         size += tempSize;
 #endif
 
@@ -140,18 +140,18 @@ namespace core
             int bufferSize = std::max<int>(size, 32 * 1024);
             std::vector<char> largerBuf;
             largerBuf.resize(bufferSize);
-
 #if defined(WIN32)
             int largerSize = _snprintf_s(&largerBuf[0], bufferSize, bufferSize - 1, "%s:%s:%d\t", source.file, source.function, source.line);
 #else
-            int largerSize;
-            assert(largerSize = snprintf(&largerBuf[0], bufferSize, "%s:%s:%d\t", source.file, source.function, source.line) >= 0);
+            int largerSize = snprintf(&largerBuf[0], bufferSize, "%s:%s:%d\t", source.file, source.function, source.line);
+            assert(largerSize >= 0);
 #endif
             assert(largerSize != -1 && largerSize < bufferSize); //In windows version -1 is a legit answer
 #if defined(WIN32)
             vsprintf_s(&largerBuf[largerSize], bufferSize - largerSize, format, arguments); //We will print what we can, no second resize.
 #else
-            assert(vsnprintf(&largerBuf[largerSize], bufferSize - largerSize, format, arguments) >= 0); //We will print what we can, no second resize.
+            int remainSize = vsnprintf(&largerBuf[largerSize], bufferSize - largerSize, format, arguments);
+            assert(remainSize >= 0); //We will print what we can, no second resize.
 #endif
             result = std::string(largerBuf.begin(), largerBuf.end());
         }
