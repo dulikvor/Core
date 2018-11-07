@@ -35,6 +35,12 @@ namespace core
         const static int value = TypeId<X, Args...>::value != -1 ? TypeId<X, Args...>::value + 1 : -1;
     };
 
+    #define IS_INTEGRAL(NAME, TYPE) \
+    bool Is##NAME() const\
+    {   \
+        return m_typeId == TypeId<TYPE, ARGUMENTS>::value; \
+    }
+
     class IParam
     {
     public:
@@ -95,13 +101,22 @@ namespace core
             std::swap(m_rawBuffer, obj.m_rawBuffer);
         }
 
-        template<typename Y, typename std::enable_if<std::is_object<Y>::value &&
-                std::is_copy_constructible<Y>::value, int>::type = 0>
-        Y Get() const
+        template<typename Y>
+        const Y& Get() const
         {
             assert((TypeId<Y, ARGUMENTS>::value) == m_typeId);
             return *reinterpret_cast<const Y*>(m_rawBuffer);
         }
+        IS_INTEGRAL(Short,       short);
+        IS_INTEGRAL(Int,         int);
+        IS_INTEGRAL(Long,        long);
+        IS_INTEGRAL(Float,       float);
+        IS_INTEGRAL(Double,      double);
+        IS_INTEGRAL(Bool,        bool);
+        IS_INTEGRAL(Pointer,     void*);
+        IS_INTEGRAL(CtypeS,      const char*);
+        IS_INTEGRAL(String,      std::string);
+        IS_INTEGRAL(StringArray, std::vector<std::string>);
 
     private:
         int m_typeId;
