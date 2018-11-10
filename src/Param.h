@@ -44,7 +44,22 @@ namespace core
     class IParam
     {
     public:
+        IParam(int typeId):m_typeId(typeId){}
 	    virtual ~IParam(){}
+
+        IS_INTEGRAL(Short,       short);
+        IS_INTEGRAL(Int,         int);
+        IS_INTEGRAL(Long,        long);
+        IS_INTEGRAL(Float,       float);
+        IS_INTEGRAL(Double,      double);
+        IS_INTEGRAL(Bool,        bool);
+        IS_INTEGRAL(Pointer,     void*);
+        IS_INTEGRAL(CtypeS,      const char*);
+        IS_INTEGRAL(String,      std::string);
+        IS_INTEGRAL(StringArray, std::vector<std::string>);
+
+    protected:
+        int m_typeId;
     };
 
     template<typename X>
@@ -55,7 +70,7 @@ namespace core
 
         Param(X&& value, typename std::enable_if<std::is_copy_constructible<
                 typename std::remove_reference<X>::type>::value, bool>::type = true) :
-                m_typeId(TypeId<Type, ARGUMENTS>::value)
+                IParam(TypeId<Type, ARGUMENTS>::value)
         {
             m_rawBuffer = new char[sizeof(Type)];
             new (m_rawBuffer) Type(std::move(value));
@@ -63,7 +78,7 @@ namespace core
 
         Param(X& value, typename std::enable_if<std::is_copy_constructible<
                 typename std::remove_reference<X>::type>::value, bool>::type = true) :
-                m_typeId(TypeId<Type, ARGUMENTS>::value)
+                IParam(TypeId<Type, ARGUMENTS>::value)
         {
             m_rawBuffer = new char[sizeof(Type)];
             new (m_rawBuffer) Type(value);
@@ -71,7 +86,7 @@ namespace core
 
         Param(const X&& value, typename std::enable_if<std::is_copy_constructible<
                 typename std::remove_reference<X>::type>::value, bool>::type = true) :
-                m_typeId(TypeId<Type, ARGUMENTS>::value)
+                IParam(TypeId<Type, ARGUMENTS>::value)
         {
             m_rawBuffer = new char[sizeof(Type)];
             new (m_rawBuffer) Type(std::move(value));
@@ -79,7 +94,7 @@ namespace core
 
         Param(const X& value, typename std::enable_if<std::is_copy_constructible<
                 typename std::remove_reference<X>::type>::value, bool>::type = true) :
-                m_typeId(TypeId<Type, ARGUMENTS>::value)
+                IParam(TypeId<Type, ARGUMENTS>::value)
         {
             m_rawBuffer = new char[sizeof(Type)];
             new (m_rawBuffer) Type(value);
@@ -107,19 +122,8 @@ namespace core
             assert((TypeId<Y, ARGUMENTS>::value) == m_typeId);
             return *reinterpret_cast<const Y*>(m_rawBuffer);
         }
-        IS_INTEGRAL(Short,       short);
-        IS_INTEGRAL(Int,         int);
-        IS_INTEGRAL(Long,        long);
-        IS_INTEGRAL(Float,       float);
-        IS_INTEGRAL(Double,      double);
-        IS_INTEGRAL(Bool,        bool);
-        IS_INTEGRAL(Pointer,     void*);
-        IS_INTEGRAL(CtypeS,      const char*);
-        IS_INTEGRAL(String,      std::string);
-        IS_INTEGRAL(StringArray, std::vector<std::string>);
 
     private:
-        int m_typeId;
         char* m_rawBuffer;
     };
 
