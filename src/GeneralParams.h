@@ -21,7 +21,7 @@ namespace core
         template<typename X>
         void AddParam(const char* key, X&& value)
         {
-            typedef std::pair<const char*, std::unique_ptr<IParam>> ParamPair;
+            typedef std::pair<const char*, std::unique_ptr<Param>> ParamPair;
             auto comparator = [&key](const ParamPair& pair) -> bool {return strcmp(pair.first, key) == 0;};
             if(std::find_if(m_values.begin(), m_values.end(), comparator) == m_values.end())
             {
@@ -38,27 +38,27 @@ namespace core
                 std::is_copy_constructible<T>::value, int>::type = 0>
         T Get(const char* key) const
         {
-            typedef std::pair<const char*, std::unique_ptr<IParam>> ParamPair;
+            typedef std::pair<const char*, std::unique_ptr<Param>> ParamPair;
             auto comparator = [&key](const ParamPair& pair) -> bool {return strcmp(pair.first, key) == 0;}; //redundancy from above, but never mind :)
             std::vector<ParamPair>::const_iterator it = std::find_if(m_values.begin(), m_values.end(), comparator);
             if(it == m_values.end())
                 throw Exception(__CORE_SOURCE, "Non existing parameter was requested %s", key);
             else
             {
-                Param<T>& param = static_cast<Param<T>&>(*it->second);
+                TypedParam<T>& param = static_cast<TypedParam<T>&>(*it->second);
                 return param.template Get<T>();
             }
         }
 
         bool Exists( const char* key ) const
         {
-            typedef std::pair<const char*, std::unique_ptr<IParam>> ParamPair;
+            typedef std::pair<const char*, std::unique_ptr<Param>> ParamPair;
             auto comparator = [&key](const ParamPair& pair) -> bool {return strcmp(pair.first, key) == 0;}; //redundancy from above, but never mind :)
             std::vector<ParamPair>::const_iterator it = std::find_if(m_values.begin(), m_values.end(), comparator);
             return it != m_values.end();
         }
 
     private:
-        std::vector<std::pair<const char*, std::unique_ptr<IParam>>> m_values;
+        std::vector<std::pair<const char*, std::unique_ptr<Param>>> m_values;
     };
 }
