@@ -8,8 +8,10 @@
 int main( int argc, const char *argv[] )
 {
     core::GeneralParams params;
+    params.AddParam("val", 5);
+    int val = params.Get<int>("val");
     params.AddParam("str", "Hello world");
-    std::string str = params.Get<const char*>("str");
+    std::string str = params.Get<char*>("str");
     core::Logger::Instance().Start(core::TraceSeverity::Info);
     TRACE_INFO("Hello world");
     try
