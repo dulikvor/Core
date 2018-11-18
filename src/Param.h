@@ -11,7 +11,7 @@
 
 namespace core
 {
-    #define ARGUMENTS short, int, long, float, double, bool, void*, char*, std::string, std::vector<std::string>
+#define ARGUMENTS short, int, long, float, double, bool, void*, char*, std::string, std::vector<std::string>
 
     template<typename X, typename... Args>
     struct TypeId{};
@@ -35,7 +35,7 @@ namespace core
         const static int value = TypeId<X, Args...>::value != -1 ? TypeId<X, Args...>::value + 1 : -1;
     };
 
-    #define IS_INTEGRAL(NAME, TYPE) \
+#define IS_INTEGRAL(NAME, TYPE) \
     bool Is##NAME() const\
     {   \
         return m_typeId == TypeId<TYPE, ARGUMENTS>::value; \
@@ -45,7 +45,7 @@ namespace core
     {
     public:
         Param(int typeId):m_typeId(typeId){}
-	    virtual ~Param(){}
+        virtual ~Param(){}
 
         IS_INTEGRAL(Short,       short);
         IS_INTEGRAL(Int,         int);
@@ -68,39 +68,55 @@ namespace core
     public:
         typedef typename std::remove_reference<X>::type Type;
 
-        TypedParam(X&& value) : Param(TypeId<Type, ARGUMENTS>::value)
+        TypedParam(X&& value) :
+                Param(TypeId<Type, ARGUMENTS>::value), m_rawBuffer(nullptr)
         {
-            m_rawBuffer = new char[sizeof(Type)];
-            new (m_rawBuffer) Type(std::move(value));
+            if(m_typeId == TypeId<char*, ARGUMENTS>::value)
+            {
+                char** valuePtr = reinterpret_cast<char**>(&value);
+                m_rawBuffer = *valuePtr;
+                *valuePtr = nullptr;
+            }
+            else
+            {
+                m_rawBuffer = new char[sizeof(Type)];
+                new (m_rawBuffer) Type(std::move(value));
+            }
         }
 
-        template<typename T = X, typename = typename std::enable_if<!std::is_same<T, char*>::value, bool>::type>
         TypedParam(X& value) : Param(TypeId<Type, ARGUMENTS>::value)
         {
+            if(m_typeId == TypeId<char*, ARGUMENTS>::value)
+            {
+                char** valuePtr = reinterpret_cast<char**>(const_cast<X*>(&value));
+                size_t size = strlen(*valuePtr);
+                m_rawBuffer = new char[size + 1];
+                memcpy(m_rawBuffer, *valuePtr, size);
+                m_rawBuffer[size] = '\0';
+            }
+            else
+            {
+                m_rawBuffer = new char[sizeof(Type)];
+                new (m_rawBuffer) Type(value);
+            }
+        }
+
+        TypedParam(const X& value) : Param(TypeId<Type, ARGUMENTS>::value) //const char* and const void* will not be diverted to here due to the fact const X&, X=char*->char* const&
+        {
             m_rawBuffer = new char[sizeof(Type)];
             new (m_rawBuffer) Type(value);
         }
 
-        TypedParam(const X&& value) : Param(TypeId<Type, ARGUMENTS>::value)
-        {
-            m_rawBuffer = new char[sizeof(Type)];
-            new (m_rawBuffer) Type(std::move(value));
-        }
-
-        template<typename T = X, typename = typename std::enable_if<!std::is_same<T, char*>::value, bool>::type>
-        TypedParam(const X& value) : Param(TypeId<Type, ARGUMENTS>::value)
-        {
-            m_rawBuffer = new char[sizeof(Type)];
-            new (m_rawBuffer) Type(value);
-        }
-
-        TypedParam(const char*& value) :
-                Param(TypeId<char*, ARGUMENTS>::value)
+        TypedParam(const char*& value) : Param(TypeId<Type, ARGUMENTS>::value)
         {
             size_t size = strlen(value);
             m_rawBuffer = new char[size + 1];
             memcpy(m_rawBuffer, value, size);
             m_rawBuffer[size] = '\0';
+        }
+
+        TypedParam(const void*& value) : Param(TypeId<Type, ARGUMENTS>::value), m_rawBuffer((char*)const_cast<void*>(value))
+        {
         }
 
         virtual ~TypedParam()
@@ -110,42 +126,38 @@ namespace core
             delete[] m_rawBuffer;
         }
 
-        template<typename T>
-        TypedParam(const TypedParam<T>& object) :
-                Param(object.m_typeId)
+        TypedParam(const TypedParam& obj) :
+                Param(obj.m_typeId)
         {
-            static_assert(std::is_same<Type, typename TypedParam<T>::Type>::value == true, "Type mismatch");
-            m_rawBuffer = new char[sizeof(Type)];
-            new (m_rawBuffer) Type(*reinterpret_cast<Type*>(object.m_rawBuffer));
+            if(m_typeId == TypeId<char*, ARGUMENTS>::value)
+            {
+                size_t size = strlen(obj.m_rawBuffer);
+                m_rawBuffer = new char[size + 1];
+                memcpy(m_rawBuffer, obj.m_rawBuffer, size);
+                m_rawBuffer[size] = '\0';
+            }
+            else
+            {
+                m_rawBuffer = new char[sizeof(Type)];
+                new (m_rawBuffer) Type(*reinterpret_cast<Type*>(obj.m_rawBuffer));
+            }
         }
 
-        TypedParam(const TypedParam<char*>& object) :
-                Param(object.m_typeId)
+        TypedParam& operator=(const TypedParam& obj)
         {
-            static_assert(std::is_same<Type, typename TypedParam<char*>::Type>::value == true, "Type mismatch");
-            size_t size = strlen(object.m_rawBuffer);
-            m_rawBuffer = new char[size + 1];
-            memcpy(m_rawBuffer, object.m_rawBuffer, size);
-            m_rawBuffer[size] = '\0';
-        }
-
-        template<typename T>
-        TypedParam& operator=(const TypedParam<T>& object)
-        {
-            static_assert(std::is_same<Type, typename TypedParam<T>::Type>::value == true, "Type mismatch");
-            m_typeId = object.m_typeId;
-            m_rawBuffer = new char[sizeof(Type)];
-            new (m_rawBuffer) Type(*reinterpret_cast<Type*>(object.m_rawBuffer));
-            return *this;
-        }
-
-        TypedParam& operator=(const TypedParam<char*>& object)
-        {
-            static_assert(std::is_same<Type, typename TypedParam<char*>::Type>::value == true, "Type mismatch");
-            m_typeId = object.m_typeId;
-            size_t size = strlen(object.m_rawBuffer);
-            m_rawBuffer = new char[size];
-            memcpy(m_rawBuffer, object.m_rawBuffer, size);
+            m_typeId = obj.m_typeId;
+            if(m_typeId == TypeId<char*, ARGUMENTS>::value)
+            {
+                size_t size = strlen(obj.m_rawBuffer);
+                m_rawBuffer = new char[size + 1];
+                memcpy(m_rawBuffer, obj.m_rawBuffer, size);
+                m_rawBuffer[size] = '\0';
+            }
+            else
+            {
+                m_rawBuffer = new char[sizeof(Type)];
+                new (m_rawBuffer) Type(*reinterpret_cast<Type*>(obj.m_rawBuffer));
+            }
             return *this;
         }
 
@@ -153,6 +165,14 @@ namespace core
         {
             m_typeId = obj.m_typeId;
             std::swap(m_rawBuffer, obj.m_rawBuffer);
+        }
+
+        TypedParam& operator=(TypedParam&& obj)
+        {
+            m_typeId = obj.m_typeId;
+            m_rawBuffer = nullptr;
+            std::swap(m_rawBuffer, obj.m_rawBuffer);
+            return *this;
         }
 
         template<typename Y, typename = typename std::enable_if<!std::is_same<Y, char*>::value, bool>::type>
@@ -173,18 +193,27 @@ namespace core
         char* m_rawBuffer;
     };
 
-    template<typename X, typename std::enable_if<!std::is_array<typename std::remove_reference<X>::type>::value, bool>::type = true>
+    template<typename X, typename std::enable_if<!std::is_array<typename std::remove_reference<X>::type>::value &&
+            !std::is_pointer<typename std::remove_reference<X>::type>::value, bool>::type = true> //All integral types.
     inline std::unique_ptr<Param> MakeParam(X&& val)
     {
         return std::unique_ptr<Param>(new TypedParam<typename std::remove_cv<
-		        typename std::remove_reference<X>::type>::type>(std::forward<X>(val)));
+                typename std::remove_reference<X>::type>::type>(std::forward<X>(val)));
+    }
+
+    template<typename X, typename std::enable_if<!std::is_array<typename std::remove_reference<X>::type>::value &&
+         std::is_pointer<typename std::remove_reference<X>::type>::value, bool>::type = true> //For plain old data.
+    inline std::unique_ptr<Param> MakeParam(X&& val)
+    {
+        return std::unique_ptr<Param>(new TypedParam<typename std::add_pointer<typename std::remove_cv<
+                typename std::remove_pointer<typename std::remove_reference<X>::type>::type>::type>::type>(std::forward<X>(val)));
     }
 
     template<typename X, typename std::enable_if<std::is_array<typename std::remove_reference<X>::type>::value &&
-            std::is_lvalue_reference<X>::value, bool>::type = true>
-    inline std::unique_ptr<Param> MakeParam(X&& val)
+                                                 std::is_lvalue_reference<X>::value, bool>::type = true>
+    inline std::unique_ptr<Param> MakeParam(X&& val) //For array
     {
-        const char* _val = val; //Force a conversion to T = const char*&
+        char* _val = const_cast<char*>(val); //Force a conversion to T = const char*&
         return std::unique_ptr<Param>(new TypedParam<char*>(_val));
     }
 }
