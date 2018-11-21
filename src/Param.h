@@ -109,6 +109,7 @@ namespace core
 
         TypedParam(const char*& value) : Param(TypeId<Type, ARGUMENTS>::value)
         {
+            static_assert(std::is_same<char*, Type>::value,"Type mismatch - Type!=char*");
             size_t size = strlen(value);
             m_rawBuffer = new char[size + 1];
             memcpy(m_rawBuffer, value, size);
@@ -117,6 +118,7 @@ namespace core
 
         TypedParam(const void*& value) : Param(TypeId<Type, ARGUMENTS>::value), m_rawBuffer((char*)const_cast<void*>(value))
         {
+            static_assert(std::is_same<void*, Type>::value,"Type mismatch - Type!=void*");
         }
 
         virtual ~TypedParam()
@@ -187,6 +189,13 @@ namespace core
         {
             assert((TypeId<char*, ARGUMENTS>::value) == m_typeId);
             return m_rawBuffer;
+        }
+
+        template<typename Y, typename = typename std::enable_if<std::is_same<Y, void*>::value, bool>::type>
+        void* Get() const
+        {
+            assert((TypeId<void*, ARGUMENTS>::value) == m_typeId);
+            return (void*)m_rawBuffer;
         }
 
     private:
