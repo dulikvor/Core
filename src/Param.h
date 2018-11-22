@@ -177,7 +177,7 @@ namespace core
             return *this;
         }
 
-        template<typename Y, typename = typename std::enable_if<!std::is_same<Y, char*>::value, bool>::type>
+        template<typename Y, typename = typename std::enable_if<!std::is_pointer<Y>::value, bool>::type>
         const Y& Get() const
         {
             assert((TypeId<Y, ARGUMENTS>::value) == m_typeId);
