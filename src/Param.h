@@ -33,6 +33,7 @@ namespace core
     struct TypeId<X, T, Args...>
     {
         const static int value = TypeId<X, Args...>::value != -1 ? TypeId<X, Args...>::value + 1 : -1;
+        static_assert(value != -1, "Type is not supported");
     };
 
 #define IS_INTEGRAL(NAME, TYPE) \
@@ -54,7 +55,7 @@ namespace core
         IS_INTEGRAL(Double,      double);
         IS_INTEGRAL(Bool,        bool);
         IS_INTEGRAL(Pointer,     void*);
-        IS_INTEGRAL(CtypeS,      const char*);
+        IS_INTEGRAL(CtypeS,      char*);
         IS_INTEGRAL(String,      std::string);
         IS_INTEGRAL(StringArray, std::vector<std::string>);
 
@@ -77,6 +78,14 @@ namespace core
                 m_rawBuffer = *valuePtr;
                 *valuePtr = nullptr;
             }
+            else if(m_typeId == TypeId<void*, ARGUMENTS>::value)
+            {
+                static_assert(sizeof(void*) == sizeof(char*), "A size mismatch");
+                char** valuePtr = reinterpret_cast<char**>(&value);
+                m_rawBuffer = *valuePtr;
+                if(*valuePtr != nullptr)
+                    *valuePtr = nullptr;
+            }
             else
             {
                 m_rawBuffer = new char[sizeof(Type)];
@@ -93,6 +102,12 @@ namespace core
                 m_rawBuffer = new char[size + 1];
                 memcpy(m_rawBuffer, *valuePtr, size);
                 m_rawBuffer[size] = '\0';
+            }
+            else if(m_typeId == TypeId<void*, ARGUMENTS>::value)
+            {
+                static_assert(sizeof(void*) == sizeof(char*), "A size mismatch");
+                char** valuePtr = reinterpret_cast<char**>(&value);
+                m_rawBuffer = *valuePtr;
             }
             else
             {
@@ -138,6 +153,12 @@ namespace core
                 memcpy(m_rawBuffer, obj.m_rawBuffer, size);
                 m_rawBuffer[size] = '\0';
             }
+            else if(m_typeId == TypeId<void*, ARGUMENTS>::value)
+            {
+                static_assert(sizeof(void*) == sizeof(char*), "A size mismatch");
+                char** valuePtr = reinterpret_cast<char**>(&obj.m_rawBuffer);
+                m_rawBuffer = *valuePtr;
+            }
             else
             {
                 m_rawBuffer = new char[sizeof(Type)];
@@ -154,6 +175,12 @@ namespace core
                 m_rawBuffer = new char[size + 1];
                 memcpy(m_rawBuffer, obj.m_rawBuffer, size);
                 m_rawBuffer[size] = '\0';
+            }
+            else if(m_typeId == TypeId<void*, ARGUMENTS>::value)
+            {
+                static_assert(sizeof(void*) == sizeof(char*), "A size mismatch");
+                void** valuePtr = reinterpret_cast<void**>(&obj.m_rawBuffer);
+                m_rawBuffer = *valuePtr;
             }
             else
             {
