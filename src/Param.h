@@ -74,14 +74,14 @@ namespace core
         {
             if(m_typeId == TypeId<char*, ARGUMENTS>::value)
             {
-                char** valuePtr = reinterpret_cast<char**>(&value);
+                char** valuePtr = const_cast<char**>(reinterpret_cast<char*const*>(&value));
                 m_rawBuffer = *valuePtr;
                 *valuePtr = nullptr;
             }
             else if(m_typeId == TypeId<void*, ARGUMENTS>::value)
             {
                 static_assert(sizeof(void*) == sizeof(char*), "A size mismatch");
-                char** valuePtr = reinterpret_cast<char**>(&value);
+                char** valuePtr = const_cast<char**>(reinterpret_cast<char*const*>(&value));
                 m_rawBuffer = *valuePtr;
                 if(*valuePtr != nullptr)
                     *valuePtr = nullptr;
@@ -106,7 +106,7 @@ namespace core
             else if(m_typeId == TypeId<void*, ARGUMENTS>::value)
             {
                 static_assert(sizeof(void*) == sizeof(char*), "A size mismatch");
-                char** valuePtr = reinterpret_cast<char**>(&value);
+                char*const* valuePtr = reinterpret_cast<char*const*>(&value);
                 m_rawBuffer = *valuePtr;
             }
             else
@@ -156,7 +156,7 @@ namespace core
             else if(m_typeId == TypeId<void*, ARGUMENTS>::value)
             {
                 static_assert(sizeof(void*) == sizeof(char*), "A size mismatch");
-                char** valuePtr = reinterpret_cast<char**>(&obj.m_rawBuffer);
+                char*const* valuePtr = reinterpret_cast<char*const*>(&obj.m_rawBuffer);
                 m_rawBuffer = *valuePtr;
             }
             else
@@ -179,7 +179,7 @@ namespace core
             else if(m_typeId == TypeId<void*, ARGUMENTS>::value)
             {
                 static_assert(sizeof(void*) == sizeof(char*), "A size mismatch");
-                void** valuePtr = reinterpret_cast<void**>(&obj.m_rawBuffer);
+                char*const* valuePtr = reinterpret_cast<char*const*>(&obj.m_rawBuffer);
                 m_rawBuffer = *valuePtr;
             }
             else
