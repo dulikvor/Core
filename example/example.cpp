@@ -12,6 +12,8 @@ int main( int argc, const char *argv[] )
     int val = params.Get<int>("val");
     params.AddParam("str", "Hello world");
     std::string str = params.Get<char*>("str");
+    params.AddParam("ptr", (void*)nullptr);
+    void* ptr = params.Get<void*>("ptr");
     core::Logger::Instance().Start(core::TraceSeverity::Info);
     TRACE_INFO("Hello world");
     try
