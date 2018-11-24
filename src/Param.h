@@ -138,6 +138,8 @@ namespace core
 
         virtual ~TypedParam()
         {
+            if(m_typeId == TypeId<void*, ARGUMENTS>::value) //When Type==void* Param holds no ownership on the data.
+                return;
             Type* typedBuffer = reinterpret_cast<Type*>(m_rawBuffer);
             typedBuffer->~Type();
             delete[] m_rawBuffer;
