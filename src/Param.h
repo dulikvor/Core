@@ -14,25 +14,37 @@ namespace core
 #define ARGUMENTS short, int, long, float, double, bool, void*, char*, std::string, std::vector<std::string>
 
     template<typename X, typename... Args>
-    struct TypeId{};
+    struct typeid_impl{};
 
     template<typename X>
-    struct TypeId<X>
+    struct typeid_impl<X>
     {
         const static int value = -1;
     };
 
 
     template<typename X, typename... Args>
-    struct TypeId<X, X, Args...>
+    struct typeid_impl<X, X, Args...>
     {
         const static int value = 0;
     };
 
     template<typename X, typename T, typename... Args>
-    struct TypeId<X, T, Args...>
+    struct typeid_impl<X, T, Args...>
     {
-        const static int value = TypeId<X, Args...>::value != -1 ? TypeId<X, Args...>::value + 1 : -1;
+        const static int value = typeid_impl<X, Args...>::value != -1 ? typeid_impl<X, Args...>::value + 1 : -1;
+    };
+
+    template<typename X, typename... Args>
+    struct IsTypeIdExists
+    {
+        const static bool value = typeid_impl<X, Args...>::value != -1;
+    };
+
+    template<typename X, typename... Args>
+    struct TypeId
+    {
+        const static int value = typeid_impl<X, Args...>::value;
         static_assert(value != -1, "Type is not supported");
     };
 
