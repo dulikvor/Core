@@ -45,7 +45,6 @@ namespace core
     struct TypeId
     {
         const static int value = typeid_impl<X, Args...>::value;
-        static_assert(value != -1, "Type is not supported");
     };
 
 #define IS_INTEGRAL(NAME, TYPE) \
@@ -57,7 +56,11 @@ namespace core
     class Param
     {
     public:
-        Param(int typeId):m_typeId(typeId){}
+        Param(int typeId):m_typeId(typeId)
+        {
+            if(m_typeId == -1)
+                throw core::Exception(__CORE_SOURCE, "Non supported type");
+        }
         virtual ~Param(){}
 
         IS_INTEGRAL(Short,       short);
