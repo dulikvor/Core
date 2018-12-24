@@ -37,8 +37,8 @@ namespace core
         char buffer[MAX_WORKING_DIR_SIZE];
         ssize_t byteCount = readlink("/proc/self/exe", buffer, MAX_WORKING_DIR_SIZE);
         string processFullPath = string(buffer, byteCount > 0 ? byteCount : 0);
-        m_processPath = Directory::GetDir(processFullPath);
-        m_processName = Directory::GetProcessName(processFullPath);
+        m_processPath = Directory::GetDirctoryFullPath(processFullPath);
+        m_processName = Directory::GetFileName(processFullPath);
 #endif
     }
 

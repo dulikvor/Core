@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <type_traits>
+#include <functional>
 #if defined(__linux)
 #include <unistd.h>
 #endif
@@ -32,6 +33,24 @@ namespace core
                 stdErrorPipe->CloseReadDescriptor();
                 dup2(stdErrorPipe->GetWriteDescriptor(), Pipe::STD_ERROR);
                 execlp(processPath, args...);
+                exit(0);
+            }
+            //Only parent will reach this part
+            return ChildProcess(processID, stdOutPipe, stdErrorPipe);
+        }
+    
+        template<typename... Params, typename... Args>
+        static ChildProcess SpawnChildProcess(const char* processPath, const std::function<void(Params...)>& function, Args&&... args){
+            std::unique_ptr<Pipe> stdOutPipe(new Pipe());
+            std::unique_ptr<Pipe> stdErrorPipe(new Pipe());
+            pid_t processID = fork();
+            PLATFORM_VERIFY(processID != -1);
+            if(processID == 0) { //child
+                stdOutPipe->CloseReadDescriptor();
+                dup2(stdOutPipe->GetWriteDescriptor(), Pipe::STD_OUT);
+                stdErrorPipe->CloseReadDescriptor();
+                dup2(stdErrorPipe->GetWriteDescriptor(), Pipe::STD_ERROR);
+                function(std::forward<Args>(args)...);
                 exit(0);
             }
             //Only parent will reach this part
