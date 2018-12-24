@@ -12,6 +12,7 @@
 namespace core{
     SharedObject::SharedObject(const std::string &name, AccessMod mod)
     {
+        #if defined(__linux)
         m_name = AddLeadingSlash(const_cast<std::string&>(name));
         int flag = 0;
         switch(mod)
@@ -43,12 +44,15 @@ namespace core{
             }
         }
         PLATFORM_VERIFY(false);
+        #endif
     }
     
     void SharedObject::Unlink()
     {
+        #if defined(__linux)
        PLATFORM_VERIFY(::shm_unlink(m_name.c_str()) == 0);
        m_linked = false;
+        #endif
     }
     
     SharedObject::~SharedObject()
