@@ -13,6 +13,13 @@ matrix:
       env:
          - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
 
+before_script:
+- ulimit -c unlimited -S       # enable core dumps
 script:
 - ./INSTALL.sh
-
+- ./tests/bin/coreTests
+after_failure:
+- COREFILE=$(find . -maxdepth 1 -name "core*" | head -n 1) # find core file
+- if [[ -f "$COREFILE" ]]; then gdb -c "$COREFILE" ./tests/bin/coreTests -ex "thread apply all bt" -ex "set pagination 0" -batch; fi
+notifications:
+  email: false
