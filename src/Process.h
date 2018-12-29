@@ -40,7 +40,7 @@ namespace core
         }
     
         template<typename... Params, typename... Args>
-        static ChildProcess SpawnChildProcess(const char* processPath, const std::function<void(Params...)>& function, Args&&... args){
+        static ChildProcess SpawnChildProcess(const std::function<void(Params...)>& function, Args&&... args){
             std::unique_ptr<Pipe> stdOutPipe(new Pipe());
             std::unique_ptr<Pipe> stdErrorPipe(new Pipe());
             pid_t processID = fork();
