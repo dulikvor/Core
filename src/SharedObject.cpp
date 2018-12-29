@@ -13,15 +13,22 @@
 
 namespace core{
     
-    SharedRegion::SharedRegion(void *base, int pageOffset, size_t size)
-        :m_base(base), m_ptr(reinterpret_cast<char*>(base) + pageOffset), m_size(size), m_mapped(true)
-    {
-    }
+    SharedRegion::SharedRegion()
+        :m_base(nullptr), m_ptr(nullptr), m_size(0), m_mapped(false){}
     
-    SharedRegion::~SharedRegion()
+    SharedRegion::SharedRegion(void *base, int pageOffset, size_t size)
+        :m_base(base), m_ptr(reinterpret_cast<char*>(base) + pageOffset), m_size(size), m_mapped(true){}
+    
+    SharedRegion::SharedRegion(const SharedRegion& object)
+        :m_base(object.m_base), m_ptr(object.m_ptr), m_size(object.m_size), m_mapped(object.m_mapped){}
+        
+    SharedRegion& SharedRegion::operator=(const SharedRegion& rhs)
     {
-        if(m_mapped)
-            UnMap();
+       m_base = rhs.m_base;
+       m_ptr = rhs.m_ptr;
+       m_size = rhs.m_size;
+       m_mapped = rhs.m_mapped;
+       return *this;
     }
     
     char* SharedRegion::GetPtr() {return m_ptr;}
@@ -29,15 +36,20 @@ namespace core{
     
     void SharedRegion::UnMap()
     {
-        #if defined(__linux)
-        PLATFORM_VERIFY(::munmap(m_base, m_size) == 0);
-        m_mapped = false;
-        #endif
+        if(m_mapped)
+        {
+            #if defined(__linux)
+            PLATFORM_VERIFY(::munmap(m_base, m_size) == 0);
+            m_mapped = false;
+            #endif
+        }
     }
     
     SharedObject::SharedObject(const std::string &name, AccessMod mod)
     #if defined(__linux)
         :m_pageSize(sysconf(_SC_PAGESIZE)), m_handle(-1)
+    #else
+        :m_pageSize(0), m_handle(-1)
     #endif
     
     {
@@ -69,6 +81,8 @@ namespace core{
                 return;
         }
         PLATFORM_VERIFY(false);
+        #else
+        throw Exception(__CORE_SOURCE, "SharedObject is only supported in linux platform");
         #endif
     }
     

@@ -2,6 +2,7 @@
 #include <sstream>
 #include "src/Process.h"
 #include "src/SharedObject.h"
+#include "src/SymbolSet.h"
 
 namespace coreTest
 {
@@ -23,6 +24,7 @@ namespace coreTest
             core::SharedObject object("Core_Test", core::SharedObject::AccessMod::READ_WRITE);
             core::SharedRegion region = object.Map(8188, 5, core::SharedObject::AccessMod::READ_WRITE);//Will cross page boundries
             memcpy(region.GetPtr(), "Hello", region.GetSize());
+            region.UnMap();
         };
         core::ChildProcess child = core::Process::SpawnChildProcess(func);
         ::sleep(1);
@@ -32,7 +34,14 @@ namespace coreTest
             ss << region.GetPtr()[index];
     
         ASSERT_EQ(ss.str(), "Hello");
+        region.UnMap();
         object.Unlink();
+    }
+    
+    TEST(Core, SymbolSet)
+    {
+        core::Symbolset<3, 4> symbolset(5);
+        ASSERT_EQ((int)symbolset[2], 5);
     }
 }
 

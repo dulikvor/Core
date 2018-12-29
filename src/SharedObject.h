@@ -7,8 +7,10 @@ namespace core
     class SharedRegion
     {
     public:
+        SharedRegion();
         SharedRegion(void* base, int pageOffset, size_t size);
-        ~SharedRegion();
+        SharedRegion(const SharedRegion& object);
+        SharedRegion& operator=(const SharedRegion& rhs);
         char* GetPtr();
         size_t GetSize() const;
         void UnMap();
