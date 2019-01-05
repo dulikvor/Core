@@ -3,6 +3,7 @@
 #include "src/Process.h"
 #include "src/SharedObject.h"
 #include "src/SymbolSet.h"
+#include "src/Allocator.h"
 
 namespace coreTest
 {
@@ -40,8 +41,24 @@ namespace coreTest
     
     TEST(Core, SymbolSet)
     {
-        core::Symbolset<3, 4> symbolset(5);
+        core::Symbolset<3> symbolset(4, 5);
         ASSERT_EQ((int)symbolset[2], 5);
+        core::Symbolset<2> symbolset_2(15, 0);
+        symbolset_2[14] = 2;
+        ASSERT_EQ((int)symbolset_2[14], 2);
+    }
+    
+    TEST(Core, Allocator)
+    {
+        core::Allocator<char> allocator(core::HeapType::Shared, "Core_Allocator_Test", 8);
+        char* ptr = allocator.allocate(2);
+        char* ptr_2 = allocator.allocate(4);
+        char* ptr_3 = allocator.allocate(1);
+        allocator.deallocate(ptr);
+        allocator.deallocate(ptr_2);
+        allocator.deallocate(ptr_3);
+        ptr = allocator.allocate(8);
+        allocator.deallocate(ptr);
     }
 }
 
