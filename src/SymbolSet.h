@@ -83,7 +83,7 @@ namespace core{
                 char bufferByte = *(m_buffer + byteIdx);
                 for(int byteBitIdx = 0; byteBitIdx < currentByteBitCount; byteBitIdx++)
                 {
-                    *resultByte = *resultByte | (((bufferByte & (0x1 << (byteOffset + byteBitIdx))) >> byteOffset) << bitOffset);
+                    *resultByte = *resultByte | ((bufferByte & (0x1 << (byteOffset + byteBitIdx))) >> (byteOffset + byteBitIdx) << (bitOffset % BYTE_BIT_COUNT));
                     bitOffset++;
                     if(bitOffset == SymbolSize)
                         break;
@@ -94,31 +94,29 @@ namespace core{
         
     private:
         char* const m_buffer;
-        std::size_t m_byteCount;
+        int m_byteCount;
         int m_firstByteOffset;
     };
     
-    template<std::size_t SymbolSize, std::size_t NumOfSymbols>
+    template<std::size_t SymbolSize>
     class Symbolset
     {
-    private:
-        const int ByteCount = (SymbolSize / BYTE_BIT_COUNT) * NumOfSymbols;
     public:
-        Symbolset()
+        Symbolset(std::size_t numOfSymbols)
         {
-            int totalBitCount = SymbolSize * NumOfSymbols;
+            int totalBitCount = SymbolSize * numOfSymbols;
             int byteCount = totalBitCount % BYTE_BIT_COUNT == 0 ? totalBitCount / BYTE_BIT_COUNT :
                             (totalBitCount / BYTE_BIT_COUNT) + 1;
             m_buffer = new char[byteCount];
-            memset(m_buffer, 0, ByteCount);
+            memset(m_buffer, 0, byteCount);
         }
-        Symbolset(long defaultValue)
+        Symbolset(std::size_t numOfSymbols, long defaultValue)
         {
-            int totalBitCount = SymbolSize * NumOfSymbols;
+            int totalBitCount = SymbolSize * numOfSymbols;
             int byteCount = totalBitCount % BYTE_BIT_COUNT == 0 ? totalBitCount / BYTE_BIT_COUNT :
                             (totalBitCount / BYTE_BIT_COUNT) + 1;
             m_buffer = new char[byteCount];
-            for(int symbolIdx = 0; symbolIdx < NumOfSymbols; symbolIdx++)
+            for(unsigned int symbolIdx = 0; symbolIdx < numOfSymbols; symbolIdx++)
             {
                 operator[](symbolIdx) = defaultValue;
             }
