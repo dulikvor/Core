@@ -1,5 +1,6 @@
 #include "Allocator.h"
 #include <algorithm>
+#include <cstdint>
 
 namespace core{
     
@@ -12,19 +13,19 @@ namespace core{
     
     unsigned int BuddyCell::CellsPerLevel(unsigned int cellLevel)
     {
-        return pow(2, cellLevel);
+        return static_cast<unsigned int>(pow(2, cellLevel));
     }
     
     char* BuddyCell::CalculateCellAddress(char *base, unsigned int cellLevel, unsigned int logarithmVal, unsigned int cell)
     {
-        std::size_t cellSize = pow(2, logarithmVal);
+		std::size_t cellSize = static_cast<std::size_t>(pow(2, logarithmVal));
         unsigned int cellOffset = cell - CellsUpUntilCurrentLevel(cellLevel);
         return base + cellOffset * cellSize;
     }
     
     unsigned int BuddyCell::AddressToCellIdx(unsigned int cellLevel, unsigned int logarithmVal, char* base, char *address)
     {
-        std::size_t cellSize = pow(2, logarithmVal);
+		std::size_t cellSize = static_cast<std::size_t>(pow(2, logarithmVal));
         std::uintptr_t addressDiff = reinterpret_cast<std::uintptr_t>(address) - reinterpret_cast<std::uintptr_t>(base);
         unsigned int cellIdx = addressDiff % cellSize == 0 ? addressDiff / cellSize + BuddyCell::CellsUpUntilCurrentLevel(cellLevel) :
                 std::numeric_limits<unsigned int>::max();
@@ -33,13 +34,13 @@ namespace core{
     
     unsigned int BuddyCell::CalculateCellToLevel(unsigned int cell)
     {
-        return floor(log2(cell + 1));
+		return static_cast<unsigned int>(floor(log2(cell + 1)));
     }
     
     BuddyTree::BuddyTree(unsigned int numCellsLevel, char* const buffer)
         :m_topCellLevel(numCellsLevel), m_buffer(buffer)
         {
-            unsigned int cellsCount = BuddyCell::CellsUpUntilCurrentLevel(m_topCellLevel) + pow(2, m_topCellLevel);
+            unsigned int cellsCount = BuddyCell::CellsUpUntilCurrentLevel(m_topCellLevel) + static_cast<unsigned int>(pow(2, m_topCellLevel));
             VERIFY(cellsCount < std::numeric_limits<unsigned int>::max(), "unsigned maximum value is being used as a flag, too many cells are requested");
             m_buddyTree.reset(new Symbolset<BLOCK_STATUS_BIT_COUNT>(cellsCount, NILL));
             (*m_buddyTree)[0] = NotAllocated;
