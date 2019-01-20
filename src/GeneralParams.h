@@ -21,8 +21,8 @@ namespace core
         template<typename X>
         void AddParam(const char* key, X&& value)
         {
-            typedef std::pair<const char*, std::unique_ptr<Param>> ParamPair;
-            auto comparator = [&key](const ParamPair& pair) -> bool {return strcmp(pair.first, key) == 0;};
+            typedef std::pair<std::string, std::unique_ptr<Param>> ParamPair;
+            auto comparator = [&key](const ParamPair& pair) -> bool {return pair.first == key;};
             if(std::find_if(m_values.begin(), m_values.end(), comparator) == m_values.end())
             {
                 auto param = MakeParam(std::forward<X>(value));
@@ -30,7 +30,7 @@ namespace core
             }
             else
             {
-                throw core::Exception(__CORE_SOURCE, "A requested key was already existed - %s", key);
+                throw core::Exception(__CORE_SOURCE, "Requested key already exists - %s", key);
             }
         }
 
@@ -38,8 +38,8 @@ namespace core
                 std::is_copy_constructible<T>::value, int>::type = 0>
         T Get(const char* key) const
         {
-            typedef std::pair<const char*, std::unique_ptr<Param>> ParamPair;
-            auto comparator = [&key](const ParamPair& pair) -> bool {return strcmp(pair.first, key) == 0;}; //redundancy from above, but never mind :)
+            typedef std::pair<std::string, std::unique_ptr<Param>> ParamPair;
+            auto comparator = [&key](const ParamPair& pair) -> bool {return pair.first == key;}; //redundancy from above, but never mind :)
             std::vector<ParamPair>::const_iterator it = std::find_if(m_values.begin(), m_values.end(), comparator);
             if(it == m_values.end())
                 throw Exception(__CORE_SOURCE, "Non existing parameter was requested %s", key);
@@ -52,13 +52,13 @@ namespace core
 
         bool Exists( const char* key ) const
         {
-            typedef std::pair<const char*, std::unique_ptr<Param>> ParamPair;
-            auto comparator = [&key](const ParamPair& pair) -> bool {return strcmp(pair.first, key) == 0;}; //redundancy from above, but never mind :)
+            typedef std::pair<std::string, std::unique_ptr<Param>> ParamPair;
+            auto comparator = [&key](const ParamPair& pair) -> bool {return pair.first == key;}; //redundancy from above, but never mind :)
             std::vector<ParamPair>::const_iterator it = std::find_if(m_values.begin(), m_values.end(), comparator);
             return it != m_values.end();
         }
 
     private:
-        std::vector<std::pair<const char*, std::unique_ptr<Param>>> m_values;
+        std::vector<std::pair<std::string, std::unique_ptr<Param>>> m_values;
     };
 }
