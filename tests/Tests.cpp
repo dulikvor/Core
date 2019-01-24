@@ -1,9 +1,12 @@
 #include "gtest/gtest.h"
 #include <sstream>
+#include <mutex>
 #include "src/Process.h"
 #include "src/SharedObject.h"
 #include "src/SymbolSet.h"
 #include "src/Allocator.h"
+#include "src/Mutex.h"
+#include "src/Thread.h"
 
 namespace coreTest
 {
@@ -59,6 +62,34 @@ namespace coreTest
         allocator.deallocate(ptr_3);
         ptr = allocator.allocate(8);
         allocator.deallocate(ptr);
+    }
+    
+    TEST(Core, MutexSimple)
+    {
+        core::Mutex mutex;
+        
+        auto func = [&mutex]{
+            std::lock_guard<core::Mutex> guard(mutex);
+            volatile int val;
+            for(int idx = 0; idx < 500000; idx++)
+            {
+                val = idx * idx;
+            }
+        };
+        
+        core::Thread thr_a("Thread A", func);
+        core::Thread thr_b("Thread B", func);
+        core::Thread thr_c("Thread C", func);
+        core::Thread thr_d("Thread D", func);
+        
+        thr_a.Start();
+        thr_b.Start();
+        thr_c.Start();
+        thr_d.Start();
+        thr_a.Join();
+        thr_b.Join();
+        thr_c.Join();
+        thr_d.Join();
     }
 }
 
