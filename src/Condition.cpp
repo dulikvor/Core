@@ -19,7 +19,11 @@ namespace core{
             return;
         }
         m_command.exchange(command);
+#if defined(__linux)
         syscall(SYS_futex, &m_command, FUTEX_WAKE, m_command == NOTIFY_ONE ? 1 : std::numeric_limits<int>::max(), nullptr, nullptr, 0);
+#else
+        throw Exception(__CORE_SOURCE, "wake is not being supported by current platform");
+#endif
         
         while(m_command != SLEEP){}
         m_wakeLock.unlock();
@@ -33,7 +37,11 @@ namespace core{
         while(true)
         {
             while(m_command == SLEEP)
+#if defined(__linux)
                 syscall(SYS_futex, &m_command, FUTEX_WAIT, SLEEP, nullptr, nullptr, 0);
+#else
+                throw Exception(__CORE_SOURCE, "wait is not being supported by current platform");
+#endif
             
             int fromCommand_one = NOTIFY_ONE;
             if(m_command.compare_exchange_strong(fromCommand_one, static_cast<int>(SLEEP)))
