@@ -1,12 +1,10 @@
 #include "Mutex.h"
-#include <unistd.h>
 #if defined(__linux)
+#include <unistd.h>
 #include <linux/futex.h>
 #include <sys/syscall.h>
 #endif
 #include "Exception.h"
-#include <thread>
-#include <iostream>
 
 namespace core{
     

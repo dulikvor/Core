@@ -1,7 +1,7 @@
 #include "Condition.h"
-#include <unistd.h>
 #include <limits>
 #if defined(__linux)
+#include <unistd.h>
 #include <linux/futex.h>
 #include <sys/syscall.h>
 #endif
@@ -44,11 +44,10 @@ namespace core{
             }
             else if(m_command == NOTIFY_ALL)
             {
-                if(m_waitersCount.fetch_sub(1) == 0)
-                {
+                if(m_waitersCount.fetch_sub(1) == 1)
                     m_command.exchange(SLEEP);
-                    mutex.lock();
-                }
+                
+                mutex.lock();
                 return;
             }
         }

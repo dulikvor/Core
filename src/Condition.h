@@ -7,7 +7,7 @@ namespace core{
     
     class Condition
     {
-    private:
+    public:
         enum Command : int
         {
             SLEEP = 0,
@@ -15,7 +15,6 @@ namespace core{
             NOTIFY_ALL
         };
         
-    public:
         Condition();
         void Signal(Command command);
         void Wait(Mutex& mutex);
