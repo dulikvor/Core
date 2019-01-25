@@ -15,6 +15,7 @@ matrix:
 
 before_script:
 - ulimit -c unlimited -S       # enable core dumps
+- eval "${MATRIX_EVAL}"
 script:
 - ./INSTALL.sh
 - ./tests/bin/coreTests
