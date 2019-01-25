@@ -5,6 +5,7 @@
 #include <linux/futex.h>
 #include <sys/syscall.h>
 #endif
+#include "Exception.h"
 
 namespace core{
     

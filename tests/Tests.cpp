@@ -11,7 +11,7 @@
 #include "src/Thread.h"
 #include "src/Condition.h"
 
-using namespace std::chrono_literals;
+using namespace std::literals::chrono_literals;
 
 namespace coreTest
 {
