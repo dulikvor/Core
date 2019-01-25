@@ -140,7 +140,7 @@ namespace core
         {
             size_type requestedSize = n * base::min_size;
             unsigned int logarithmVal = ceil(log2(requestedSize));
-            reinterpret_cast<pointer>(m_buddyTree->Allocate(logarithmVal));
+            return reinterpret_cast<pointer>(m_buddyTree->Allocate(logarithmVal));
         }
     
         void deallocate(pointer p, size_type n) override
