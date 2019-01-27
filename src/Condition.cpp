@@ -6,6 +6,7 @@
 #include <sys/syscall.h>
 #endif
 #include "Exception.h"
+#include <condition_variable>
 
 namespace core{
     
@@ -26,7 +27,8 @@ namespace core{
         throw Exception(__CORE_SOURCE, "wake is not being supported by current platform");
 #endif
         
-        while(m_command != SLEEP){}
+        while(m_command.load(std::memory_order_relaxed) != SLEEP){}
+        
         m_wakeLock.unlock();
         
     }
@@ -60,5 +62,22 @@ namespace core{
                 return;
             }
         }
+    }
+    
+    ConditionVariable::ConditionVariable() {}
+    
+    void ConditionVariable::wait(core::Mutex &mutex)
+    {
+        m_condition.Wait(mutex);
+    }
+    
+    void ConditionVariable::notify_one()
+    {
+        m_condition.Signal(Condition::NOTIFY_ONE);
+    }
+    
+    void ConditionVariable::notify_all()
+    {
+        m_condition.Signal(Condition::NOTIFY_ALL);
     }
 }

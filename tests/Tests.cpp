@@ -149,6 +149,33 @@ namespace coreTest
         thr_waiterB.Join();
         thr_signal.Join();
     }
+    
+    TEST(Core, ConditionVariableNotifyAll)
+    {
+        core::Mutex mutex;
+        core::ConditionVariable cv;
+        bool signal = false;
+        auto wait_f = [&mutex, &cv, &signal]{
+            std::lock_guard<core::Mutex> guard(mutex);
+            cv.wait([&signal]{ return signal; }, mutex);
+        };
+        
+        core::Thread thr_waiterA("Waiter A", wait_f);
+        core::Thread thr_waiterB("Waiter B", wait_f);
+        core::Thread thr_signal("Signal", [&mutex, &cv, &signal]{
+            std::this_thread::sleep_for(100ms);
+            std::lock_guard<core::Mutex> guard(mutex);
+            signal = true;
+            cv.notify_all();
+        });
+        
+        thr_waiterA.Start();
+        thr_waiterB.Start();
+        thr_signal.Start();
+        thr_waiterA.Join();
+        thr_waiterB.Join();
+        thr_signal.Join();
+    }
 }
 
 int main(int argc, char **argv)
