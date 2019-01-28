@@ -13,9 +13,9 @@ namespace core{
     class SWSRCyclicBuffer
     {
     public:
-        SWSRCyclicBuffer():m_readIdx(0), m_writeIdx(0), m_empty(true), m_full(false){}
-        bool is_empty() const { return m_empty; }
-        bool is_full() const { return m_full; }
+        SWSRCyclicBuffer():m_readIdx(0), m_writeIdx(0){}
+        bool is_empty() const { return m_readIdx == m_writeIdx; }
+        bool is_full() const { return (m_writeIdx + 1) % Count == m_readIdx; } //we are going to loose one write
         
         bool write(Type&& elem)
         {
@@ -23,10 +23,6 @@ namespace core{
             {
                 m_buffer[m_writeIdx] = std::move(elem);
                 m_writeIdx = (++m_writeIdx) % Count;
-                if(m_readIdx == m_writeIdx)
-                    m_full = true;
-                if(m_empty)
-                    m_empty = false;
                 return true;
             }
             return false;
@@ -38,10 +34,6 @@ namespace core{
             {
                 m_buffer[m_writeIdx] = elem;
                 m_writeIdx = (++m_writeIdx) % Count;
-                if(m_readIdx == m_writeIdx)
-                    m_full = true;
-                if(m_empty)
-                    m_empty = false;
                 return true;
             }
             return false;
@@ -54,10 +46,6 @@ namespace core{
             {
                 elem = std::move(m_buffer[m_readIdx]);
                 m_readIdx = (++m_readIdx) % Count;
-                if(m_readIdx == m_writeIdx)
-                    m_empty = true;
-                if(m_full)
-                    m_full = false;
                 return true;
             }
             return false;
@@ -70,10 +58,6 @@ namespace core{
             {
                 elem = m_buffer[m_readIdx];
                 m_readIdx = (++m_readIdx) % Count;
-                if(m_readIdx == m_writeIdx)
-                    m_empty = true;
-                if(m_full)
-                    m_full = false;
                 return true;
             }
             return false;
