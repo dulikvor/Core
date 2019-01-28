@@ -15,14 +15,14 @@ namespace core{
     public:
         SWSRCyclicBuffer():m_readIdx(0), m_writeIdx(0){}
         bool is_empty() const { return m_readIdx == m_writeIdx; }
-        bool is_full() const { return (m_writeIdx - m_readIdx) % Count  == Count - 1; }
+        bool is_full() const { return (m_writeIdx + 1) % Count == m_readIdx; } //we are going to loose one write
         
         bool write(Type&& elem)
         {
             if(is_full() == false)
             {
                 m_buffer[m_writeIdx] = std::move(elem);
-                m_writeIdx = ++m_writeIdx % Count;
+                m_writeIdx = (++m_writeIdx) % Count;
                 return true;
             }
             return false;
@@ -33,7 +33,7 @@ namespace core{
             if(is_full() == false)
             {
                 m_buffer[m_writeIdx] = elem;
-                m_writeIdx = ++m_writeIdx % Count;
+                m_writeIdx = (++m_writeIdx) % Count;
                 return true;
             }
             return false;
@@ -45,7 +45,7 @@ namespace core{
             if(is_empty() == false)
             {
                 elem = std::move(m_buffer[m_readIdx]);
-                m_readIdx = ++m_readIdx % Count;
+                m_readIdx = (++m_readIdx) % Count;
                 return true;
             }
             return false;
@@ -57,7 +57,7 @@ namespace core{
             if(is_empty() == false)
             {
                 elem = m_buffer[m_readIdx];
-                m_readIdx = ++m_readIdx % Count;
+                m_readIdx = (++m_readIdx) % Count;
                 return true;
             }
             return false;
@@ -66,6 +66,8 @@ namespace core{
     private:
         int m_readIdx;
         int m_writeIdx;
+        bool m_full;
+        bool m_empty;
         Type m_buffer[Count];
     };
     
