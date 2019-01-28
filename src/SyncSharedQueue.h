@@ -13,16 +13,20 @@ namespace core{
     class SWSRCyclicBuffer
     {
     public:
-        SWSRCyclicBuffer():m_readIdx(0), m_writeIdx(0){}
-        bool is_empty() const { return m_readIdx == m_writeIdx; }
-        bool is_full() const { return (m_writeIdx - m_readIdx) % Count  == Count - 1; }
+        SWSRCyclicBuffer():m_readIdx(0), m_writeIdx(0), m_empty(true), m_full(false){}
+        bool is_empty() const { return m_empty; }
+        bool is_full() const { return m_full; }
         
         bool write(Type&& elem)
         {
             if(is_full() == false)
             {
                 m_buffer[m_writeIdx] = std::move(elem);
-                m_writeIdx = ++m_writeIdx % Count;
+                m_writeIdx = (++m_writeIdx) % Count;
+                if(m_readIdx == m_writeIdx)
+                    m_full = true;
+                if(m_empty)
+                    m_empty = false;
                 return true;
             }
             return false;
@@ -33,7 +37,11 @@ namespace core{
             if(is_full() == false)
             {
                 m_buffer[m_writeIdx] = elem;
-                m_writeIdx = ++m_writeIdx % Count;
+                m_writeIdx = (++m_writeIdx) % Count;
+                if(m_readIdx == m_writeIdx)
+                    m_full = true;
+                if(m_empty)
+                    m_empty = false;
                 return true;
             }
             return false;
@@ -45,7 +53,11 @@ namespace core{
             if(is_empty() == false)
             {
                 elem = std::move(m_buffer[m_readIdx]);
-                m_readIdx = ++m_readIdx % Count;
+                m_readIdx = (++m_readIdx) % Count;
+                if(m_readIdx == m_writeIdx)
+                    m_empty = true;
+                if(m_full)
+                    m_full = false;
                 return true;
             }
             return false;
@@ -57,7 +69,11 @@ namespace core{
             if(is_empty() == false)
             {
                 elem = m_buffer[m_readIdx];
-                m_readIdx = ++m_readIdx % Count;
+                m_readIdx = (++m_readIdx) % Count;
+                if(m_readIdx == m_writeIdx)
+                    m_empty = true;
+                if(m_full)
+                    m_full = false;
                 return true;
             }
             return false;
@@ -66,6 +82,8 @@ namespace core{
     private:
         int m_readIdx;
         int m_writeIdx;
+        bool m_full;
+        bool m_empty;
         Type m_buffer[Count];
     };
     

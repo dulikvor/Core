@@ -6,7 +6,6 @@
 #include <sys/syscall.h>
 #endif
 #include "Exception.h"
-#include <condition_variable>
 
 namespace core{
     
@@ -27,7 +26,7 @@ namespace core{
         throw Exception(__CORE_SOURCE, "wake is not being supported by current platform");
 #endif
         
-        while(m_command.load(std::memory_order_relaxed) != SLEEP){}
+        while(m_command.load(std::memory_order_relaxed) != SLEEP && m_waitersCount.load(std::memory_order_relaxed) != 0){}
         
         m_wakeLock.unlock();
         

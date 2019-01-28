@@ -183,7 +183,7 @@ namespace coreTest
         std::function<void(void)> func = []{
             ::sleep(1);
             core::SyncSharedQueue<int, 10> queue("Core_Test_SyncSharedQueue", false, core::SharedObject::AccessMod::READ_WRITE);
-            for(int idx = 10; idx >= 0; idx--)
+            for(int idx = 10000; idx >= 0; idx--)
             {
                 queue.push(idx);
             }
