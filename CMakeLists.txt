@@ -33,7 +33,7 @@ option(CORE_SPDLOG_SUPPORT "SpdLog will be added as logger impel" OFF)
 if(CORE_SPDLOG_SUPPORT)
     set(SPDLOG_SRC src/SpdLogLogger.cpp src/SpdLogTraceListener.cpp)
 else()
-    set(SPDLOG_SRC src/DefaultLogger.cpp src/DefaultLogger.h src/DefaultTraceListeners.h src/DefaultTraceListeners.cpp src/SharedObject.h src/SharedObject.cpp src/SymbolSet.h src/Allocator.cpp src/Mutex.cpp src/Mutex.h src/Condition.cpp src/Condition.h)
+    set(SPDLOG_SRC src/DefaultLogger.cpp src/DefaultLogger.h src/DefaultTraceListeners.h src/DefaultTraceListeners.cpp src/SharedObject.h src/SharedObject.cpp src/SymbolSet.h src/Allocator.cpp src/Mutex.cpp src/Mutex.h src/Condition.cpp src/Condition.h src/SyncSharedQueue.h)
 endif()
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
