@@ -8,6 +8,7 @@
 #include "Assert.h"
 #include "Pipe.h"
 #include "ChildProcess.h"
+#include "TypeTraits.h"
 
 namespace core
 {
@@ -39,8 +40,10 @@ namespace core
             return ChildProcess(processID, stdOutPipe, stdErrorPipe);
         }
     
-        template<typename... Params, typename... Args>
-        static ChildProcess SpawnChildProcess(const std::function<void(Params...)>& function, Args&&... args){
+        template<typename Callable, typename... Params, typename... Args>
+        static auto SpawnChildProcess(const Callable& function, Args&&... args) ->
+            typename std::enable_if<is_callable<Callable, Args...>::value, ChildProcess>::type
+        {
             std::unique_ptr<Pipe> stdOutPipe(new Pipe());
             std::unique_ptr<Pipe> stdErrorPipe(new Pipe());
             pid_t processID = fork();
