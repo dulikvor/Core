@@ -8,7 +8,7 @@ namespace core{
     
     unsigned int BuddyCell::CellsUpUntilCurrentLevel(unsigned int cellLevel)
     {
-        return std::max(static_cast<unsigned int>((1 - pow(2, cellLevel)) / -1), static_cast<unsigned int>(0));//Geometric progression
+        return std::max(static_cast<unsigned int>(pow(2, cellLevel) - 1), static_cast<unsigned int>(0));//Geometric progression
     }
     
     unsigned int BuddyCell::CellsPerLevel(unsigned int cellLevel)
@@ -18,14 +18,14 @@ namespace core{
     
     char* BuddyCell::CalculateCellAddress(char *base, unsigned int cellLevel, unsigned int logarithmVal, unsigned int cell)
     {
-		std::size_t cellSize = static_cast<std::size_t>(pow(2, logarithmVal));
+		auto cellSize = static_cast<std::size_t>(pow(2, logarithmVal));
         unsigned int cellOffset = cell - CellsUpUntilCurrentLevel(cellLevel);
         return base + cellOffset * cellSize;
     }
     
     unsigned int BuddyCell::AddressToCellIdx(unsigned int cellLevel, unsigned int logarithmVal, char* base, char *address)
     {
-		std::size_t cellSize = static_cast<std::size_t>(pow(2, logarithmVal));
+		auto cellSize = static_cast<std::size_t>(pow(2, logarithmVal));
         std::uintptr_t addressDiff = reinterpret_cast<std::uintptr_t>(address) - reinterpret_cast<std::uintptr_t>(base);
         unsigned int cellIdx = addressDiff % cellSize == 0 ? addressDiff / cellSize + BuddyCell::CellsUpUntilCurrentLevel(cellLevel) :
                 std::numeric_limits<unsigned int>::max();
@@ -64,7 +64,7 @@ namespace core{
             throw std::bad_alloc();
     
         (*m_buddyTree)[cell] = Allocated;
-        DecreaseCellLevel(cellLevel, 1);
+        DecreaseCellLevel(targetCellLevel, 1);
         return BuddyCell::CalculateCellAddress(m_buffer, targetCellLevel, logarithmVal, cell);
     }
     
@@ -101,8 +101,8 @@ namespace core{
                 (*m_buddyTree)[cell] = NotAllocated; //Updating parent cell
                 
                 unsigned int cellLevel = BuddyCell::CalculateCellToLevel(cell);
-                DecreaseCellLevel(cellLevel, 2);
-                IncreaseCellLevel(cellLevel - 1, 1);
+                DecreaseCellLevel(cellLevel + 1, 2);
+                IncreaseCellLevel(cellLevel, 1);
             }
             else
                 return;

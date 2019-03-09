@@ -11,6 +11,8 @@
 #include "src/Thread.h"
 #include "src/Condition.h"
 #include "src/SyncSharedQueue.h"
+#include "src/AsyncTask.h"
+#include "src/AsyncExecutor.h"
 
 using namespace std::literals::chrono_literals;
 
@@ -103,8 +105,8 @@ namespace coreTest
         core::Mutex mutex;
         core::Condition condition;
         auto wait_f = [&mutex, &condition]{
-            std::lock_guard<core::Mutex> guard(mutex);
-            condition.Wait(mutex);
+            std::unique_lock<core::Mutex> lock(mutex);
+            condition.wait(lock);
         };
     
         core::Thread thr_waiterA("Waiter A", wait_f);
@@ -113,8 +115,8 @@ namespace coreTest
             for(int idx = 0; idx < 2; idx++)
             {
                 std::this_thread::sleep_for(100ms);
-                std::lock_guard<core::Mutex> guard(mutex);
-                condition.Signal(core::Condition::NOTIFY_ONE);
+                std::unique_lock<core::Mutex> guard(mutex);
+                condition.signal(core::Condition::NOTIFY_ONE);
             }
         });
         
@@ -131,8 +133,8 @@ namespace coreTest
         core::Mutex mutex;
         core::Condition condition;
         auto wait_f = [&mutex, &condition]{
-            std::lock_guard<core::Mutex> guard(mutex);
-            condition.Wait(mutex);
+            std::unique_lock<core::Mutex> lock(mutex);
+            condition.wait(lock);
         };
         
         core::Thread thr_waiterA("Waiter A", wait_f);
@@ -140,7 +142,7 @@ namespace coreTest
         core::Thread thr_signal("Signal", [&mutex, &condition]{
                 std::this_thread::sleep_for(100ms);
                 std::lock_guard<core::Mutex> guard(mutex);
-                condition.Signal(core::Condition::NOTIFY_ALL);
+                condition.signal(core::Condition::NOTIFY_ALL);
         });
         
         thr_waiterA.Start();
@@ -157,8 +159,8 @@ namespace coreTest
         core::ConditionVariable cv;
         bool signal = false;
         auto wait_f = [&mutex, &cv, &signal]{
-            std::lock_guard<core::Mutex> guard(mutex);
-            cv.wait([&signal]{ return signal; }, mutex);
+            std::unique_lock<core::Mutex> lock(mutex);
+            cv.wait(lock, [&signal]{ return signal; });
         };
         
         core::Thread thr_waiterA("Waiter A", wait_f);
@@ -196,6 +198,12 @@ namespace coreTest
         {
             queue.pop(item);
         }
+    }
+    
+    TEST(Core, ProcessAsyncExecutor)
+    {
+        auto executor = core::AsyncExecutor<core::ExecutionModel::Process, 6>::make_executor("Core_Test_ProcessAsyncExecutor", true);
+        
     }
 }
 

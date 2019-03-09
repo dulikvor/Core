@@ -3,7 +3,7 @@
 #include <memory>
 #include <utility>
 #include <unordered_map>
-#include <math.h>
+#include <cmath>
 #include <cstring>
 #include <bitset>
 #include "SharedObject.h"
@@ -29,12 +29,37 @@ namespace core
     public:
         typedef T* pointer;
         typedef size_t size_type;
-        const int min_size = sizeof(T);
+        typedef T value_type;
+        
+        template<typename T1>
+        Allocator& operator=(const Allocator<T1>& object)
+        {
+            switch(m_type)
+            {
+                case HeapType::Shared:
+                    m_impl.reset(new BuddySharedAllocator<T1>());
+                    *m_impl = *object.m_impl;
+                    break;
+                case HeapType::Local:
+                    m_impl.reset(nullptr);
+                    break;
+                default:
+                    throw Exception(__CORE_SOURCE, "Non supported heap type was provided - %d", static_cast<int>(m_type));
+            }
+            return *this;
+        }
+        
+        template<typename T1>
+        struct rebind
+        {
+            typedef Allocator<T1> other;
+        };
         
         template<typename... Args>
-        Allocator(HeapType::Enumeration type, Args&&... args)
+        explicit Allocator(HeapType::Enumeration type, Args&&... args)
+            :m_type(type)
         {
-            switch(type)
+            switch(m_type)
             {
                 case HeapType::Shared:
                     m_impl.reset(new BuddySharedAllocator<T>(std::forward<Args>(args)...));
@@ -43,12 +68,12 @@ namespace core
                     m_impl.reset(nullptr);
                     return;
                 default:
-                    throw Exception(__CORE_SOURCE, "Non supported heap type was provided - %d", static_cast<int>(type));
+                    throw Exception(__CORE_SOURCE, "Non supported heap type was provided - %d", static_cast<int>(m_type));
             }
         }
-        pointer allocate(size_type n, const void * hint = 0 )
+        pointer allocate(size_type n, const void * hint = nullptr )
         {
-            return m_impl->allocate(n, hint);
+            return m_impl->allocate(n*sizeof(value_type), hint);
         }
         void deallocate(pointer p, size_type n = 0)
         {
@@ -57,6 +82,7 @@ namespace core
         
     private:
         std::unique_ptr<AllocatorImpl<T>> m_impl;
+        HeapType::Enumeration m_type;
     };
     
     template<typename T>
@@ -67,7 +93,7 @@ namespace core
         typedef size_t size_type;
         const int min_size = sizeof(T);
         
-        virtual ~AllocatorImpl(){}
+        virtual ~AllocatorImpl() = default;
         
         virtual pointer allocate(size_type n, const void * hint) = 0;
         virtual void deallocate(pointer p, size_type n) = 0;
@@ -121,24 +147,50 @@ namespace core
         typedef AllocatorImpl<T> base;
         typedef typename base::size_type size_type;
         typedef typename base::pointer pointer;
-        BuddySharedAllocator(const std::string& name, int chunkSize = 1024 * 1024)
-            :m_sharedObject(name, SharedObject::AccessMod::READ_WRITE)
+        
+        BuddySharedAllocator()
+            :m_owner(false)
         {
-            m_sharedObject.Allocate(chunkSize);
-            m_region = m_sharedObject.Map(0, chunkSize, SharedObject::AccessMod::READ_WRITE);
-            unsigned int cellLevel = ceil(log2(chunkSize));
+        }
+        
+        BuddySharedAllocator(const std::string& name, std::ptrdiff_t offset, int chunkSize = 1024 * 1024)
+            :m_sharedObject(new SharedObject(name, SharedObject::AccessMod::READ_WRITE)), m_owner(true)
+        {
+            m_sharedObject->Allocate(chunkSize);
+            m_region = m_sharedObject->Map(offset, chunkSize - offset, SharedObject::AccessMod::READ_WRITE);
+            unsigned int cellLevel = ceil(log2(chunkSize - offset));
             m_buddyTree.reset(new BuddyTree(cellLevel, m_region.GetPtr()));
+        }
+    
+        explicit BuddySharedAllocator(char* const buffer, int chunkSize = 1024 * 1024)
+            :m_owner(false)
+        {
+            unsigned int cellLevel = ceil(log2(chunkSize));
+            m_buddyTree.reset(new BuddyTree(cellLevel, buffer));
+        }
+        
+        template<typename T1>
+        BuddySharedAllocator& operator=(const BuddySharedAllocator<T1>& object)
+        {
+            m_sharedObject = object.m_sharedObject;
+            m_region = object.m_region;
+            m_buddyTree = object.m_buddyTree;
+            m_owner = false;
+            return *this;
         }
         
         virtual ~BuddySharedAllocator()
         {
-            m_region.UnMap();
-            m_sharedObject.Unlink();
+            if(m_owner)
+            {
+                m_region.UnMap();
+                m_sharedObject->Unlink();
+            }
         }
         
         pointer allocate(size_type n, const void * hint) override
         {
-            size_type requestedSize = n * base::min_size;
+            size_type requestedSize = n;
             unsigned int logarithmVal = ceil(log2(requestedSize));
             return reinterpret_cast<pointer>(m_buddyTree->Allocate(logarithmVal));
         }
@@ -149,8 +201,9 @@ namespace core
         }
         
     private:
-        std::unique_ptr<BuddyTree> m_buddyTree;
-        SharedObject m_sharedObject;
+        std::shared_ptr<BuddyTree> m_buddyTree;
+        std::shared_ptr<SharedObject> m_sharedObject;
         SharedRegion m_region;
+        mutable bool m_owner;
     };
 }
