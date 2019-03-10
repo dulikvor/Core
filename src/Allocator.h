@@ -75,7 +75,7 @@ namespace core
         {
             return m_impl->allocate(n*sizeof(value_type), hint);
         }
-        void deallocate(pointer p, size_type n = 0)
+        void deallocate(void* p, size_type n = 0)
         {
             m_impl->deallocate(p, n);
         }
@@ -96,7 +96,7 @@ namespace core
         virtual ~AllocatorImpl() = default;
         
         virtual pointer allocate(size_type n, const void * hint) = 0;
-        virtual void deallocate(pointer p, size_type n) = 0;
+        virtual void deallocate(void* p, size_type n) = 0;
     };
     
     class BuddyCell
@@ -195,7 +195,7 @@ namespace core
             return reinterpret_cast<pointer>(m_buddyTree->Allocate(logarithmVal));
         }
     
-        void deallocate(pointer p, size_type n) override
+        void deallocate(void* p, size_type n) override
         {
             m_buddyTree->Deallocate(reinterpret_cast<char*>(p));
         }

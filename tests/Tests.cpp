@@ -203,7 +203,8 @@ namespace coreTest
     TEST(Core, ProcessAsyncExecutor)
     {
         auto executor = core::AsyncExecutor<core::ExecutionModel::Process, 6>::make_executor("Core_Test_ProcessAsyncExecutor", true);
-        
+        auto future = executor->make_task<int>([](int i){return ++i;}, 5);
+        int& result = future->get();
     }
 }
 

@@ -85,7 +85,6 @@ namespace core
         typedef std::unique_ptr<AsyncExecutor> executor_ptr;
         virtual ~AsyncExecutor()=default;
     
-        virtual void push_task(const AsyncTask::task_ptr& task) = 0;
         virtual void stop() = 0;
     
         template<typename Callable, typename... Args>
@@ -93,6 +92,13 @@ namespace core
         {
             auto& executor = static_cast<ConcreteAsyncExecutor<model, poolSize>&>(*this);
             return executor.make_task(callable, std::forward<Args>(args)...);
+        }
+    
+        template<typename Return, typename Callable, typename... Args>
+        future<Return> make_task(Callable callable, Args&&... args)
+        {
+            auto& executor = static_cast<ConcreteAsyncExecutor<model, poolSize>&>(*this);
+            return executor.template make_task<Return>(callable, std::forward<Args>(args)...);
         }
         
         template<typename... Args>
@@ -163,21 +169,14 @@ namespace core
             }
         }
         
-        void push_task(const AsyncTask::task_ptr& task)
-        {
-            static int idx = 0;
-            _queue& queue = m_executor->get_queue(idx);
-             idx = (idx + 1) % poolSize;
-            auto& concreteTask =  *reinterpret_cast<_concrete_task*>(task.get());
-            queue.push(concreteTask.get_task());
-        }
-        
         template<typename Callable, typename... Args>
         AsyncTask::task_ptr make_task(Callable callable, Args&&... args)
         {
             typedef _AsyncTask<_concrete_task::_mutex, _concrete_task::_conditional_var, Callable, Args...> local_task;
             auto allocator = reinterpret_cast<typename _allocator_type::rebind<local_task>::other*>(m_allocator.get());
-            return AsyncTask::task_ptr(new _concrete_task(*allocator, callable, std::forward<Args>(args)...), [](AsyncTask* ptr){delete ptr;});
+            AsyncTask::task_ptr task(new _concrete_task(*allocator, callable, std::forward<Args>(args)...), [](AsyncTask* ptr){delete ptr;});
+            push_task(reinterpret_cast<_concrete_task*>(task.get())->get_task());
+            return std::move(task);
         }
     
         template<typename Callable, typename... Args>
@@ -185,7 +184,20 @@ namespace core
         {
             typedef _TerminateTask<_concrete_task::_mutex, _concrete_task::_conditional_var, Callable, Args...> local_task;
             auto allocator = reinterpret_cast<typename _allocator_type::rebind<local_task>::other*>(m_allocator.get());
-            return AsyncTask::task_ptr(new _concrete_task(terminate_task(), *allocator, callable, std::forward<Args>(args)...), [](AsyncTask* ptr){delete ptr;});
+            AsyncTask::task_ptr task(new _concrete_task(terminate_task(), *allocator, callable, std::forward<Args>(args)...), [](AsyncTask* ptr){delete ptr;});
+            push_task(reinterpret_cast<_concrete_task*>(task.get())->get_task());
+            return std::move(task);
+        }
+    
+        template<typename Return, typename Callable, typename... Args>
+        future<Return> make_task(Callable callable, Args&&... args)
+        {
+            typedef _FutureTask<_concrete_task::_mutex, _concrete_task::_conditional_var, Callable, Return, Args...> local_task;
+            typedef ConcreteFutureTask<ExecutionModel::Process, Return> _concrete_future_task;
+            auto allocator = reinterpret_cast<typename _allocator_type::rebind<local_task>::other*>(m_allocator.get());
+            future<Return> future(new _concrete_future_task(*allocator, callable, std::forward<Args>(args)...), [](Future<Return>* ptr){delete ptr;});
+            push_task(reinterpret_cast<_concrete_future_task*>(future.get())->get_task());
+            return std::move(future);
         }
     
         void stop() override
@@ -197,7 +209,6 @@ namespace core
             {
                 _queue& queue = m_executor->get_queue(idx);
                 AsyncTask::task_ptr task = make_task(terminate_task(), std::function<void()>());
-                queue.push(reinterpret_cast<_concrete_task*>(task.get())->get_task());
                 try{
                     task->wait();
                 }
@@ -230,6 +241,14 @@ namespace core
         static constexpr std::size_t allocation_offset()
         {
             return _queue::chunk_size()*poolSize;
+        }
+    
+        void push_task(_task* task)
+        {
+            static int idx = 0;
+            _queue& queue = m_executor->get_queue(idx);
+            idx = (idx + 1) % poolSize;
+            queue.push(task);
         }
 
 
@@ -283,25 +302,29 @@ namespace core
             }
         }
         
-        void push_task(const AsyncTask::task_ptr& task)
-        {
-            static int idx = 0;
-            _queue& queue = m_executor.get_queue(idx);
-            idx = (idx + 1) % poolSize;
-            auto concreteTask = reinterpret_cast<_concrete_task*>(task.get());
-            queue.push(concreteTask->get_task());
-        }
-        
         template<typename Callable, typename... Args>
         AsyncTask::task_ptr make_task(Callable callable, Args&&... args)
         {
-            AsyncTask::task_ptr(new _concrete_task(callable, std::forward<Args>(args)...));
+            AsyncTask::task_ptr task(new _concrete_task(callable, std::forward<Args>(args)...));
+            push_task(reinterpret_cast<_concrete_task*>(task.get())->get_task());
+            return std::move(task);
         }
     
         template<typename Callable, typename... Args>
         AsyncTask::task_ptr make_task(terminate_task, Callable callable, Args&&... args)
         {
-            AsyncTask::task_ptr(new _concrete_task(terminate_task(), callable, std::forward<Args>(args)...));
+            AsyncTask::task_ptr task(new _concrete_task(terminate_task(), callable, std::forward<Args>(args)...));
+            push_task(reinterpret_cast<_concrete_task*>(task.get())->get_task());
+            return std::move(task);
+        }
+    
+        template<typename Return, typename Callable, typename... Args>
+        future<Return> make_task(Callable callable, Args&&... args)
+        {
+            typedef ConcreteFutureTask<ExecutionModel::Thread, Return> _concrete_future_task;
+            future<Return> future(new _concrete_future_task(callable, std::forward<Args>(args)...));
+            push_task(reinterpret_cast<_concrete_future_task*>(future.get())->get_task());
+            return std::move(future);
         }
         
         void stop() override
@@ -327,6 +350,14 @@ namespace core
         
     private:
         friend _executor;
+    
+        void push_task(const AsyncTask::shared_task_ptr& task)
+        {
+            static int idx = 0;
+            _queue& queue = m_executor.get_queue(idx);
+            idx = (idx + 1) % poolSize;
+            queue.push(task);
+        }
         
         executor_value_type _get_executor() const { return m_executor; }
         

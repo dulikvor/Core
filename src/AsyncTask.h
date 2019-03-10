@@ -23,6 +23,12 @@ namespace core
     
     };
     
+    template<ExecutionModel, typename>
+    class ConcreteFutureTask
+    {
+    
+    };
+    
     class AsyncTask
     {
     public:
@@ -51,7 +57,7 @@ namespace core
     };
     
     template<typename Mutex, typename ConditionVar, typename Callable, typename... Args>
-    class _AsyncTask : public AsyncTask
+    class _AsyncTask : public virtual AsyncTask
     {
     public:
         typedef _AsyncTask _self;
@@ -113,26 +119,26 @@ namespace core
             m_waitCv.notify_one();
         }
         
-        static void* operator new(std::size_t count)
+        void* operator new(std::size_t count)
         {
             return ::operator new(count);
         }
         
-        static void operator delete(void* ptr)
+        void operator delete(void* ptr)
         {
-            ::operator delete(reinterpret_cast<_self*>(ptr));
+            ::operator delete(ptr);
         }
         
         template<typename Allocator>
-        static void* operator new(std::size_t count, Allocator& allocator)
+        void* operator new(std::size_t count, Allocator& allocator)
         {
             return reinterpret_cast<void*>(allocator.allocate(1));
         }
         
         template<typename Allocator>
-        static void operator delete(void* ptr, Allocator& allocator)
+        void operator delete(void* ptr, Allocator& allocator)
         {
-            allocator.deallocate(reinterpret_cast<_self*>(ptr));
+            allocator.deallocate(ptr);
         }
         
     protected:
@@ -168,33 +174,63 @@ namespace core
         virtual ~_TerminateTask()=default;
     
         bool is_terminate_task() const override {return true;}
-    
-        static void* operator new(std::size_t count)
-        {
-            return _base::operator new(count);
-        }
-    
-        static void operator delete(void* ptr)
-        {
-            _base::operator delete(ptr);
-        }
-    
-        template<typename Allocator>
-        static void* operator new(std::size_t count, Allocator& allocator)
-        {
-            auto _allocator = reinterpret_cast<typename Allocator::template rebind<_base>::other*>(&allocator);
-            return _base::operator new(count, *_allocator);
-        }
-    
-        template<typename Allocator>
-        static void operator delete(void* ptr, Allocator& allocator)
-        {
-            auto _allocator = reinterpret_cast<typename Allocator::template rebind<_base>::other*>(&allocator);
-            return _base::operator delete(ptr, *_allocator);
-        }
     };
     
+    template<typename Return>
+    class Future : public virtual AsyncTask
+    {
+    public:
+        typedef std::unique_ptr<Future, std::function<void(Future*)>> task_ptr;
+        typedef std::shared_ptr<Future> shared_task_ptr;
+        ~Future() override = default;
+        virtual Return& get() = 0;
+    };
+    
+    template<typename Mutex, typename ConditionVar, typename Callable, typename Return, typename... Args>
+    class _FutureTask : virtual public _AsyncTask<Mutex, ConditionVar, Callable, Args...>, virtual public Future<Return>
+    {
+    public:
+        typedef _AsyncTask<Mutex, ConditionVar, Callable, Args...> _base;
+        
+        template<typename... _Args>
+        _FutureTask(Callable func, _Args&&... args)
+            :_base::_AsyncTask(func, std::forward<_Args>(args)...){}
+            
+        ~_FutureTask() override = default;
+        
+        Return& get() override
+        {
+            this->wait();
+            return m_value;
+        }
+    
+        void start() override
+        {
+            this->m_state = _base::AsyncTaskState::RUNNING;
+            m_value = start_impl(std::make_index_sequence<sizeof...(Args)>());
+            this->m_state = _base::AsyncTaskState::COMPLETED;
+            {
+                std::unique_lock<Mutex> localLock(this->m_waitMut);
+                this->m_waitCv.notify_one();
+            }
+        }
+        
+    private:
+        template<std::size_t... idx>
+        Return start_impl(std::index_sequence<idx...>)
+        {
+            return this->m_func(std::get<idx>(this->m_args)...);
+        }
+        
+    private:
+        Return m_value;
+    };
+    
+    template<typename Return>
+    using future = typename Future<Return>::task_ptr;
+    
     struct terminate_task{};
+    template<typename Return> struct future_task{};
     
     template<>
     class ConcreteAsyncTask<ExecutionModel::Process> : public AsyncTask
@@ -235,7 +271,7 @@ namespace core
                         auto task = reinterpret_cast<_task*>(ptr);
                         AsyncTaskState state = task->get_state();
                         if(state == AsyncTaskState::CANCELED || state == AsyncTaskState::COMPLETED)
-                            _task::operator delete(ptr, allocator);
+                            _task::_base::operator delete(ptr, allocator);
                     }
             );
         }
@@ -255,6 +291,51 @@ namespace core
         
     private:
         AsyncTask::task_ptr m_task;
+    };
+    
+    template<typename Return>
+    class ConcreteFutureTask<ExecutionModel::Process, Return> : public Future<Return>
+    {
+    public:
+        typedef ConcreteFutureTask<ExecutionModel::Process, Return> _self;
+        typedef Future<Return> _base;
+        typedef Mutex _mutex;
+        typedef ConditionVariable _conditional_var;
+        
+        template<typename Callable, typename... Args, typename = typename std::enable_if<
+                is_callable_ret<Callable, Return, Args...>::value>::type>
+        ConcreteFutureTask(Allocator<_FutureTask<_mutex, _conditional_var, Callable, Return, Args...>>& allocator,
+                           Callable func, Args&&... args)
+        {
+            typedef _FutureTask<_mutex, _conditional_var, Callable, Return, Args...> _task;
+            
+            m_task = typename _base::task_ptr(
+                    new(allocator)_task(std::forward<Callable>(func), std::forward<Args>(args)...),
+                    [&allocator](_base* ptr){
+                        auto task = reinterpret_cast<_task*>(ptr);
+                        AsyncTask::AsyncTaskState state = task->get_state();
+                        if(state == AsyncTask::AsyncTaskState::CANCELED || state == AsyncTask::AsyncTaskState::COMPLETED)
+                            _task::_base::operator delete(ptr, allocator);
+                    }
+            );
+        }
+        
+        ~ConcreteFutureTask() override=default;
+        
+        void start() override { m_task->start(); }
+        void complete() override { m_task->complete(); }
+        void change_state(AsyncTask::AsyncTaskState newState) override { m_task->change_state(newState); }
+        void set_failure_reason(const std::string& failureReason) override { m_task->set_failure_reason(failureReason); }
+        AsyncTask::AsyncTaskState get_state() const override { return m_task->get_state(); }
+        std::string get_failure_reason() const override { return m_task->get_failure_reason(); }
+        void wait() override { m_task->wait(); }
+        Return& get() override { m_task->get(); }
+        void notify_on_failure() override { m_task->notify_on_failure(); }
+        
+        AsyncTask* get_task() {return m_task.get();}
+    
+    private:
+        typename _base::task_ptr m_task;
     };
     
     template<>
@@ -294,6 +375,41 @@ namespace core
         
     private:
         AsyncTask::shared_task_ptr m_task;
+    };
+    
+    template<typename Return>
+    class ConcreteFutureTask<ExecutionModel::Thread, Return> : public Future<Return>
+    {
+    public:
+        typedef ConcreteFutureTask<ExecutionModel::Process, Return> _self;
+        typedef Future<Return> _base;
+        typedef Mutex _mutex;
+        typedef ConditionVariable _conditional_var;
+    
+        template<typename Callable, typename... Args, typename = typename std::enable_if<
+                is_callable_ret<Callable, Return, Args...>::value>::type>
+        ConcreteFutureTask(Callable func, Args&&... args)
+        {
+            typedef _FutureTask<std::mutex, std::condition_variable, Callable, Return, Args...> _task;
+            m_task.reset(new _task(std::forward<Callable>(func), std::forward<Args>(args)...));
+        }
+        
+        ~ConcreteFutureTask() override=default;
+        
+        void start() override { m_task->start(); }
+        void complete() override { m_task->complete(); }
+        void change_state(typename _base::AsyncTaskState newState) override { m_task->change_state(newState); }
+        void set_failure_reason(const std::string& failureReason) override { m_task->set_failure_reason(failureReason); }
+        typename _base::AsyncTaskState get_state() const override { return m_task->get_state(); }
+        std::string get_failure_reason() const override { return m_task->get_failure_reason(); }
+        void wait() override { m_task->wait(); }
+        Return& get() override { m_task->get(); }
+        void notify_on_failure() override { m_task->notify_on_failure(); }
+    
+        AsyncTask::shared_task_ptr get_task() {return m_task;}
+    
+    private:
+        typename _base::shared_task_ptr m_task;
     };
     
     template<ExecutionModel model, typename Allocator, typename Callable, typename... Args>
