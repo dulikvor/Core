@@ -69,10 +69,9 @@ namespace core
                 typename _ConditionVar = ConditionVar, typename = typename std::enable_if<std::is_default_constructible<_ConditionVar>::value>::type,
                 typename... _Args>
         explicit _AsyncTask(Callable func, _Args&&... args)
-            :m_state(AsyncTaskState::CREATED), m_func(func), m_args(std::forward<_Args>(args)...)
-        {}
+            :m_state(AsyncTaskState::CREATED), m_func(func), m_args(std::forward<_Args>(args)...){}
     
-        _AsyncTask(_AsyncTask&& object) NOEXCEPT
+        _AsyncTask(_AsyncTask&& object) NOEXCEPT(true)
             :m_state(object.m_state), m_func(std::move(object.m_func)), m_args(std::move(object.m_args)),
                 m_failureReason(std::move(m_failureReason)), m_waitMut(object.m_waitMut), m_waitCv(object.m_waitMut){}
                 
@@ -106,8 +105,11 @@ namespace core
         void wait() override
         {
             std::unique_lock<Mutex> localLock(m_waitMut);
-            m_waitCv.wait(localLock, [this]{return m_state == AsyncTaskState::CANCELED ||
-                                                m_state == AsyncTaskState::COMPLETED;});
+            m_waitCv.wait(localLock, [this]{
+                return m_state == AsyncTaskState::CANCELED ||
+                    m_state == AsyncTaskState::COMPLETED;
+            });
+            
             if(m_state == AsyncTaskState::CANCELED)
                 throw Exception(__CORE_SOURCE, "%s", m_failureReason.c_str());
         }
@@ -150,9 +152,6 @@ namespace core
         ConditionVar m_waitCv;
         
     private:
-        friend class ConcreteAsyncTask<ExecutionModel::Process>;
-        friend class ConcreteAsyncTask<ExecutionModel::Thread>;
-        
         template<std::size_t... idx>
         void start_impl(std::index_sequence<idx...>)
         {
@@ -168,7 +167,7 @@ namespace core
         typedef _AsyncTask<Mutex, ConditionVar, Callable, Args...> _base;
         template<typename... _Args>
         explicit _TerminateTask(Callable func, _Args&&... args)
-            :_AsyncTask<Mutex, ConditionVar, Callable, Args...>::_AsyncTask(func, std::forward<_Args>(args)...)
+            :_base::_AsyncTask(func, std::forward<_Args>(args)...)
         {}
         
         virtual ~_TerminateTask()=default;
@@ -187,7 +186,7 @@ namespace core
     };
     
     template<typename Mutex, typename ConditionVar, typename Callable, typename Return, typename... Args>
-    class _FutureTask : virtual public _AsyncTask<Mutex, ConditionVar, Callable, Args...>, virtual public Future<Return>
+    class _FutureTask : public Future<Return>, public _AsyncTask<Mutex, ConditionVar, Callable, Args...>
     {
     public:
         typedef _AsyncTask<Mutex, ConditionVar, Callable, Args...> _base;
@@ -242,13 +241,14 @@ namespace core
         
         template<typename Callable, typename... Args, typename = typename std::enable_if<
                 is_callable<Callable, Args...>::value>::type>
-        ConcreteAsyncTask(Allocator<_AsyncTask<_mutex, _conditional_var, Callable, Args...>>& allocator,
+        ConcreteAsyncTask(Allocator<AsyncTask>& allocator,
                 Callable func, Args&&... args)
         {
-            typedef _AsyncTask<_mutex, _conditional_var, Callable, Args...> _task;
+            typedef _AsyncTask<_mutex, _conditional_var, Callable, typename std::decay<Args>::type...> _task;
+            typename Allocator<AsyncTask>::rebind<_task>::other typedAllocator(allocator);
             
             m_task = AsyncTask::task_ptr(
-                    new(allocator)_task(std::forward<Callable>(func), std::forward<Args>(args)...),
+                    new(typedAllocator)_task(std::forward<Callable>(func), std::forward<Args>(args)...),
                     [&allocator](AsyncTask* ptr){
                         auto task = reinterpret_cast<_task*>(ptr);
                         AsyncTaskState state = task->get_state();
@@ -260,13 +260,14 @@ namespace core
     
         template<typename Callable, typename... Args, typename = typename std::enable_if<
                 is_callable<Callable, Args...>::value>::type>
-        ConcreteAsyncTask(terminate_task, Allocator<_TerminateTask<_mutex, _conditional_var, Callable, Args...>>& allocator,
+        ConcreteAsyncTask(terminate_task, Allocator<AsyncTask>& allocator,
                           Callable func, Args&&... args)
         {
-            typedef _TerminateTask<_mutex, _conditional_var, Callable, Args...> _task;
+            typedef _TerminateTask<_mutex, _conditional_var, Callable, typename std::decay<Args>::type...> _task;
+            typename Allocator<AsyncTask>::rebind<_task>::other typedAllocator(allocator);
         
             m_task = AsyncTask::task_ptr(
-                    new(allocator)_task(std::forward<Callable>(func), std::forward<Args>(args)...),
+                    new(typedAllocator)_task(std::forward<Callable>(func), std::forward<Args>(args)...),
                     [&allocator](AsyncTask* ptr){
                         auto task = reinterpret_cast<_task*>(ptr);
                         AsyncTaskState state = task->get_state();
@@ -304,13 +305,14 @@ namespace core
         
         template<typename Callable, typename... Args, typename = typename std::enable_if<
                 is_callable_ret<Callable, Return, Args...>::value>::type>
-        ConcreteFutureTask(Allocator<_FutureTask<_mutex, _conditional_var, Callable, Return, Args...>>& allocator,
+        ConcreteFutureTask(Allocator<AsyncTask>& allocator,
                            Callable func, Args&&... args)
         {
-            typedef _FutureTask<_mutex, _conditional_var, Callable, Return, Args...> _task;
+            typedef _FutureTask<_mutex, _conditional_var, Callable, Return, typename std::decay<Args>::type...> _task;
+            typename Allocator<AsyncTask>::rebind<_task>::other typedAllocator(allocator);
             
             m_task = typename _base::task_ptr(
-                    new(allocator)_task(std::forward<Callable>(func), std::forward<Args>(args)...),
+                    new(typedAllocator)_task(std::forward<Callable>(func), std::forward<Args>(args)...),
                     [&allocator](_base* ptr){
                         auto task = reinterpret_cast<_task*>(ptr);
                         AsyncTask::AsyncTaskState state = task->get_state();
@@ -348,7 +350,7 @@ namespace core
                 is_callable<Callable, Args...>::value>::type>
         explicit ConcreteAsyncTask(Callable func, Args&&... args)
         {
-            typedef _AsyncTask<std::mutex, std::condition_variable, Callable, Args...> _task;
+            typedef _AsyncTask<std::mutex, std::condition_variable, Callable, typename std::decay<Args>::type...> _task;
             m_task.reset(new _task(std::forward<Callable>(func), std::forward<Args>(args)...));
         }
     
@@ -356,7 +358,7 @@ namespace core
                 is_callable<Callable, Args...>::value>::type>
         ConcreteAsyncTask(terminate_task, Callable func, Args&&... args)
         {
-            typedef _TerminateTask<std::mutex, std::condition_variable, Callable, Args...> _task;
+            typedef _TerminateTask<std::mutex, std::condition_variable, Callable, typename std::decay<Args>::type...> _task;
             m_task.reset(new _task(std::forward<Callable>(func), std::forward<Args>(args)...));
         }
         
@@ -390,7 +392,7 @@ namespace core
                 is_callable_ret<Callable, Return, Args...>::value>::type>
         ConcreteFutureTask(Callable func, Args&&... args)
         {
-            typedef _FutureTask<std::mutex, std::condition_variable, Callable, Return, Args...> _task;
+            typedef _FutureTask<std::mutex, std::condition_variable, Callable, Return, typename std::decay<Args>::type...> _task;
             m_task.reset(new _task(std::forward<Callable>(func), std::forward<Args>(args)...));
         }
         

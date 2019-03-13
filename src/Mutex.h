@@ -28,11 +28,10 @@ namespace core{
         void lock()
         {
             int lockState = UNLOCK;
-            if(std::atomic_compare_exchange_strong_explicit(&m_word, &lockState, static_cast<int>(LOCK_SINGLE),
-                    std::memory_order_relaxed, std::memory_order_relaxed) == false)
+            if(std::atomic_compare_exchange_strong(&m_word, &lockState, static_cast<int>(LOCK_SINGLE)) == false)
             {
                 if(lockState != LOCK_MANY)
-                    lockState = std::atomic_exchange_explicit(&m_word, static_cast<int>(LOCK_MANY), std::memory_order_relaxed);
+                    lockState = std::atomic_exchange(&m_word, static_cast<int>(LOCK_MANY));
                 while(lockState != UNLOCK)
                 {
 
@@ -41,10 +40,9 @@ namespace core{
                 #else
                     throw Exception(__CORE_SOURCE, "wait is not being supported by current platform");
                 #endif
-                    lockState = std::atomic_exchange_explicit(&m_word, static_cast<int>(LOCK_MANY), std::memory_order_relaxed);
+                    lockState = std::atomic_exchange(&m_word, static_cast<int>(LOCK_MANY));
                 }
             }
-            std::atomic_thread_fence(std::memory_order_seq_cst); //linireazibility point
         }
     
         void unlock()

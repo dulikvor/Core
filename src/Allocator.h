@@ -32,13 +32,32 @@ namespace core
         typedef T value_type;
         
         template<typename T1>
-        Allocator& operator=(const Allocator<T1>& object)
+        Allocator(const Allocator<T1>& object)
         {
-            switch(m_type)
+            switch(object.m_type)
             {
                 case HeapType::Shared:
-                    m_impl.reset(new BuddySharedAllocator<T1>());
-                    *m_impl = *object.m_impl;
+                    m_impl.reset(new BuddySharedAllocator<T>(
+                            static_cast<const BuddySharedAllocator<T1>&>(*object.m_impl)
+                            ));
+                    break;
+                case HeapType::Local:
+                    m_impl.reset(nullptr);
+                    break;
+                default:
+                    throw Exception(__CORE_SOURCE, "Non supported heap type was provided - %d", static_cast<int>(m_type));
+            }
+        }
+        
+        template<typename T1>
+        Allocator& operator=(const Allocator<T1>& rhs)
+        {
+            switch(rhs.m_type)
+            {
+                case HeapType::Shared:
+                    m_impl.reset(new BuddySharedAllocator<T>());
+                    static_cast<BuddySharedAllocator<T>&>(*m_impl) =
+                            static_cast<const BuddySharedAllocator<T1>&>(*rhs.m_impl);
                     break;
                 case HeapType::Local:
                     m_impl.reset(nullptr);
@@ -71,16 +90,19 @@ namespace core
                     throw Exception(__CORE_SOURCE, "Non supported heap type was provided - %d", static_cast<int>(m_type));
             }
         }
-        pointer allocate(size_type n, const void * hint = nullptr )
+        
+        pointer allocate(size_type n, void * hint = nullptr )
         {
             return m_impl->allocate(n*sizeof(value_type), hint);
         }
+        
         void deallocate(void* p, size_type n = 0)
         {
             m_impl->deallocate(p, n);
         }
         
     private:
+        template<typename T1> friend class Allocator;
         std::unique_ptr<AllocatorImpl<T>> m_impl;
         HeapType::Enumeration m_type;
     };
@@ -95,7 +117,7 @@ namespace core
         
         virtual ~AllocatorImpl() = default;
         
-        virtual pointer allocate(size_type n, const void * hint) = 0;
+        virtual pointer allocate(size_type n, void * hint) = 0;
         virtual void deallocate(void* p, size_type n) = 0;
     };
     
@@ -170,6 +192,12 @@ namespace core
         }
         
         template<typename T1>
+        BuddySharedAllocator(const BuddySharedAllocator<T1>& object)
+            :m_sharedObject(object.m_sharedObject), m_region(object.m_region),
+                m_buddyTree(object.m_buddyTree), m_owner(false)
+        {}
+        
+        template<typename T1>
         BuddySharedAllocator& operator=(const BuddySharedAllocator<T1>& object)
         {
             m_sharedObject = object.m_sharedObject;
@@ -188,10 +216,9 @@ namespace core
             }
         }
         
-        pointer allocate(size_type n, const void * hint) override
+        pointer allocate(size_type n, void * hint) override
         {
-            size_type requestedSize = n;
-            unsigned int logarithmVal = ceil(log2(requestedSize));
+            unsigned int logarithmVal = ceil(log2(n));
             return reinterpret_cast<pointer>(m_buddyTree->Allocate(logarithmVal));
         }
     
@@ -201,6 +228,7 @@ namespace core
         }
         
     private:
+        template<typename T1> friend class BuddySharedAllocator;
         std::shared_ptr<BuddyTree> m_buddyTree;
         std::shared_ptr<SharedObject> m_sharedObject;
         SharedRegion m_region;

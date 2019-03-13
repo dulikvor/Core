@@ -8,6 +8,7 @@
 #include <mutex>
 #include <limits>
 #include <condition_variable>
+#include <type_traits>
 #include "NoExcept.h"
 #include "Allocator.h"
 #include "Assert.h"
@@ -23,7 +24,7 @@
 namespace core
 {
     static const int QueueSize = 128;
-    static const int AllocationAreaSize = 1024 * 1024;
+    static const int AllocationAreaSize = 1024 * 1024 * 16;
     
     template<typename Queue, std::size_t poolSize>
     class _AsyncExecutor
@@ -47,6 +48,7 @@ namespace core
         template<typename Derived, typename... Args>
         static void entry_point(int idx, Args&&... args)
         {
+            std::cout<<"Child process"<<std::endl;
             typename Derived::executor_value_type executor = Derived::get_executor(std::forward<Args>(args)...);
             Queue& queue = executor.get_queue(idx);
             while(true)
@@ -124,6 +126,7 @@ namespace core
         typedef _executor executor_value_type;
         typedef Allocator<_task> _allocator_type;
         typedef std::unique_ptr<Allocator<_task>> _allocator_ptr;
+        typedef std::vector<ChildProcess> _child_processes;
         
         ConcreteAsyncExecutor(const std::string& name, bool owner)
             :m_sharedObject(name, SharedObject::AccessMod::READ_WRITE), m_owner(owner), m_executor(new _executor()), m_stopped(false)
@@ -133,13 +136,16 @@ namespace core
             m_sharedObject.Allocate(chunkSize);
             m_region = m_sharedObject.Map(0, chunkSize, SharedObject::AccessMod::READ_WRITE);
             m_allocator.reset(new Allocator<_task>(HeapType::Shared, m_region.GetPtr() + allocation_offset(), AllocationAreaSize));
+            m_childProcesses.reserve(poolSize);
             if(m_owner)
             {
                 for(int idx = 0; idx < poolSize; idx++)
                 {
                     auto offset = static_cast<std::ptrdiff_t >(_queue::chunk_size()*idx);
                     m_executor->set_queue(idx, new _queue(m_region.GetPtr() + offset, true));
-                    Process::SpawnChildProcess(&_executor::template entry_point<_self, const std::string&>, idx, name);
+                    m_childProcesses.emplace_back(
+                            Process::SpawnChildProcess(&_executor::template entry_point<_self, const std::string&>, idx, name)
+                    );
                 }
             }
             else
@@ -152,7 +158,7 @@ namespace core
             }
         }
         
-        ConcreteAsyncExecutor(ConcreteAsyncExecutor&& object) NOEXCEPT
+        ConcreteAsyncExecutor(ConcreteAsyncExecutor&& object) NOEXCEPT(true)
             :m_sharedObject(object.m_sharedObject), m_region(m_region), m_owner(false),
                 m_executor(std::move(object.m_executor)), m_stopped(m_stopped)
         {
@@ -172,9 +178,7 @@ namespace core
         template<typename Callable, typename... Args>
         AsyncTask::task_ptr make_task(Callable callable, Args&&... args)
         {
-            typedef _AsyncTask<_concrete_task::_mutex, _concrete_task::_conditional_var, Callable, Args...> local_task;
-            auto allocator = reinterpret_cast<typename _allocator_type::rebind<local_task>::other*>(m_allocator.get());
-            AsyncTask::task_ptr task(new _concrete_task(*allocator, callable, std::forward<Args>(args)...), [](AsyncTask* ptr){delete ptr;});
+            AsyncTask::task_ptr task(new _concrete_task(*m_allocator, callable, std::forward<Args>(args)...), [](AsyncTask* ptr){delete ptr;});
             push_task(reinterpret_cast<_concrete_task*>(task.get())->get_task());
             return std::move(task);
         }
@@ -182,9 +186,7 @@ namespace core
         template<typename Callable, typename... Args>
         AsyncTask::task_ptr make_task(terminate_task, Callable callable, Args&&... args)
         {
-            typedef _TerminateTask<_concrete_task::_mutex, _concrete_task::_conditional_var, Callable, Args...> local_task;
-            auto allocator = reinterpret_cast<typename _allocator_type::rebind<local_task>::other*>(m_allocator.get());
-            AsyncTask::task_ptr task(new _concrete_task(terminate_task(), *allocator, callable, std::forward<Args>(args)...), [](AsyncTask* ptr){delete ptr;});
+            AsyncTask::task_ptr task(new _concrete_task(terminate_task(), *m_allocator, callable, std::forward<Args>(args)...), [](AsyncTask* ptr){delete ptr;});
             push_task(reinterpret_cast<_concrete_task*>(task.get())->get_task());
             return std::move(task);
         }
@@ -192,12 +194,10 @@ namespace core
         template<typename Return, typename Callable, typename... Args>
         future<Return> make_task(Callable callable, Args&&... args)
         {
-            typedef _FutureTask<_concrete_task::_mutex, _concrete_task::_conditional_var, Callable, Return, Args...> local_task;
             typedef ConcreteFutureTask<ExecutionModel::Process, Return> _concrete_future_task;
-            auto allocator = reinterpret_cast<typename _allocator_type::rebind<local_task>::other*>(m_allocator.get());
-            future<Return> future(new _concrete_future_task(*allocator, callable, std::forward<Args>(args)...), [](Future<Return>* ptr){delete ptr;});
-            push_task(reinterpret_cast<_concrete_future_task*>(future.get())->get_task());
-            return std::move(future);
+            future<Return> futureTask(new _concrete_future_task(*m_allocator, callable, std::forward<Args>(args)...), [](Future<Return>* ptr){delete ptr;});
+            push_task(reinterpret_cast<_concrete_future_task*>(futureTask.get())->get_task());
+            return std::move(futureTask);
         }
     
         void stop() override
@@ -209,11 +209,16 @@ namespace core
             {
                 _queue& queue = m_executor->get_queue(idx);
                 AsyncTask::task_ptr task = make_task(terminate_task(), std::function<void()>());
-                try{
+                try
+                {
                     task->wait();
                 }
                 catch(Exception& exc){}
             }
+            
+            for(ChildProcess& process : m_childProcesses)
+                process.wait();
+            
             m_stopped = true;
         }
         
@@ -224,7 +229,7 @@ namespace core
     
         static executor_value_type get_executor(const std::string& name)
         {
-            ConcreteAsyncExecutor executor(name, false);
+            _self executor(name, false);
             return executor._get_executor();
         }
         
@@ -255,6 +260,7 @@ namespace core
     private:
         SharedObject m_sharedObject;
         SharedRegion m_region;
+        _child_processes m_childProcesses;
         bool m_owner;
         typename _executor::executor_ptr m_executor;
         _allocator_ptr m_allocator;
@@ -284,28 +290,19 @@ namespace core
                 m_queueGuard.emplace_back();
                 m_executor.set_queue(idx, &m_queueGuard.back());
                 m_threadPool.emplace_back(new Thread(std::string("AsyncExec_") +
-                                                     std::to_string(idx), std::bind(&_executor::template entry_point<_self, _self*>, idx, this)));
-                m_threadPool.back()->Start();
+                                                     std::to_string(idx), std::bind(&_executor::template entry_point<_self, _self*&>, idx, this)));
             }
         }
         
         virtual ~ConcreteAsyncExecutor()
         {
-            for(int idx = 0; idx < (int)m_threadPool.size(); idx++)
-            {
-                _queue& queue = m_executor.get_queue(idx);
-                queue.push(nullptr);
-            }
-            for(const auto& thread : m_threadPool)
-            {
-                thread->Join();
-            }
+            stop();
         }
         
         template<typename Callable, typename... Args>
         AsyncTask::task_ptr make_task(Callable callable, Args&&... args)
         {
-            AsyncTask::task_ptr task(new _concrete_task(callable, std::forward<Args>(args)...));
+            AsyncTask::task_ptr task(new _concrete_task(callable, std::forward<Args>(args)...), [](AsyncTask* ptr){delete ptr;});
             push_task(reinterpret_cast<_concrete_task*>(task.get())->get_task());
             return std::move(task);
         }
@@ -313,7 +310,7 @@ namespace core
         template<typename Callable, typename... Args>
         AsyncTask::task_ptr make_task(terminate_task, Callable callable, Args&&... args)
         {
-            AsyncTask::task_ptr task(new _concrete_task(terminate_task(), callable, std::forward<Args>(args)...));
+            AsyncTask::task_ptr task(new _concrete_task(terminate_task(), callable, std::forward<Args>(args)...), [](AsyncTask* ptr){delete ptr;});
             push_task(reinterpret_cast<_concrete_task*>(task.get())->get_task());
             return std::move(task);
         }
@@ -322,9 +319,9 @@ namespace core
         future<Return> make_task(Callable callable, Args&&... args)
         {
             typedef ConcreteFutureTask<ExecutionModel::Thread, Return> _concrete_future_task;
-            future<Return> future(new _concrete_future_task(callable, std::forward<Args>(args)...));
-            push_task(reinterpret_cast<_concrete_future_task*>(future.get())->get_task());
-            return std::move(future);
+            future<Return> futureTask(new _concrete_future_task(callable, std::forward<Args>(args)...), [](AsyncTask* ptr){delete ptr;});
+            push_task(reinterpret_cast<_concrete_future_task*>(futureTask.get())->get_task());
+            return std::move(futureTask);
         }
         
         void stop() override
@@ -342,11 +339,12 @@ namespace core
                 }
                 catch(Exception& exc){}
             }
+            for(const auto& thread : m_threadPool)
+            {
+                thread->join();
+            }
             m_stopped = true;
         }
-        
-    public:
-        static AsyncTask::task_ptr stub;
         
     private:
         friend _executor;
@@ -359,7 +357,7 @@ namespace core
             queue.push(task);
         }
         
-        executor_value_type _get_executor() const { return m_executor; }
+        executor_value_type _get_executor() { return m_executor; }
         
         static executor_value_type get_executor(_self* self)
         {
@@ -369,7 +367,7 @@ namespace core
     private:
         std::vector<_queue> m_queueGuard;
          _thread_pool m_threadPool;
-        _AsyncExecutor<_queue, QueueSize> m_executor;
+        _AsyncExecutor<_queue, poolSize> m_executor;
         bool m_stopped;
     };
     

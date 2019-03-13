@@ -54,7 +54,7 @@ namespace core{
     
     {
         #if defined(__linux)
-        m_name = AddLeadingSlash(const_cast<std::string&>(name));
+        m_name = AddLeadingSlash(name);
         int flag = 0;
         switch(mod)
         {
@@ -68,7 +68,7 @@ namespace core{
                 throw Exception(__CORE_SOURCE, "Non supported mod");
         }
         mode_t permission = (Directory::READ_WRITE_ONLY<<6) | (Directory::READ_ONLY<<3) |(Directory::READ_ONLY);
-        m_handle = shm_open(name.c_str(), flag | (O_CREAT | O_EXCL), permission);
+        m_handle = shm_open(m_name.c_str(), flag | (O_CREAT | O_EXCL), permission);
         if(m_handle >= 0)
         {
             ::fchmod(m_handle, permission);
@@ -76,7 +76,7 @@ namespace core{
         }
         else if(errno == EEXIST)
         {
-            m_handle = shm_open(name.c_str(), flag, permission);
+            m_handle = shm_open(m_name.c_str(), flag, permission);
             if(m_handle >= 0)
                 return;
         }
@@ -133,10 +133,10 @@ namespace core{
     
     std::string SharedObject::AddLeadingSlash(const std::string &name)
     {
-        std::string slashedName;
+        std::string slashedName = "/";
         if(name.length() && name[0] != '/')
         {
-            slashedName = "/" + name;
+            slashedName += name;
             return slashedName;
         }
         else

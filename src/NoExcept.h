@@ -1,7 +1,7 @@
 #pragma once
 
 #if defined(WIN32)
-#define NOEXCEPT
+#define NOEXCEPT(expression)
 #else
-#define NOEXCEPT noexcept
+#define NOEXCEPT(expression) noexcept(expression)
 #endif

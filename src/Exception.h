@@ -24,8 +24,8 @@ namespace core
         }
 
         Exception() = delete;
-        Exception(const Exception& object) NOEXCEPT :m_message(object.m_message){};
-        virtual ~Exception() NOEXCEPT {}
+        Exception(const Exception& object) NOEXCEPT(true) :m_message(object.m_message){};
+        virtual ~Exception() NOEXCEPT(true) {}
         //Accessor
         std::string GetMessage() const {return m_message;}
     protected:

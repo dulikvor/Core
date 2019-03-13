@@ -16,6 +16,12 @@ namespace core
         
         SyncQueue() = default;
         ~SyncQueue() = default;
+        SyncQueue(const SyncQueue& object):m_queue(object.m_queue){}
+        SyncQueue& operator=(const SyncQueue& rhs)
+        {
+            m_queue = rhs.m_queue;
+            return *this;
+        }
         //Push receives a list of elements of type T, copying each element into the queue and notifying
         //upon their insertion.
         void push(const std::vector<T>& elements)
@@ -48,13 +54,12 @@ namespace core
             return true;
         }
 
-        T pop()
+        void pop(T& element)
         {
             std::unique_lock<std::mutex> localLock(m_mutex);
             m_conditionVar.wait(localLock, [this]()->bool{return !m_queue.empty();});
-            T ret = m_queue.front();
+            element = m_queue.front();
             m_queue.pop();
-            return ret;
         }
 
         bool is_empty() const
