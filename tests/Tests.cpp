@@ -90,14 +90,10 @@ namespace coreTest
         core::Thread thr_c("Thread C", func);
         core::Thread thr_d("Thread D", func);
         
-        thr_a.Start();
-        thr_b.Start();
-        thr_c.Start();
-        thr_d.Start();
-        thr_a.Join();
-        thr_b.Join();
-        thr_c.Join();
-        thr_d.Join();
+        thr_a.join();
+        thr_b.join();
+        thr_c.join();
+        thr_d.join();
     }
     
     TEST(Core, ConditionSimple)
@@ -120,12 +116,9 @@ namespace coreTest
             }
         });
         
-        thr_waiterA.Start();
-        thr_waiterB.Start();
-        thr_signal.Start();
-        thr_waiterA.Join();
-        thr_waiterB.Join();
-        thr_signal.Join();
+        thr_waiterA.join();
+        thr_waiterB.join();
+        thr_signal.join();
     }
     
     TEST(Core, ConditionNotifyAll)
@@ -145,12 +138,9 @@ namespace coreTest
                 condition.signal(core::Condition::NOTIFY_ALL);
         });
         
-        thr_waiterA.Start();
-        thr_waiterB.Start();
-        thr_signal.Start();
-        thr_waiterA.Join();
-        thr_waiterB.Join();
-        thr_signal.Join();
+        thr_waiterA.join();
+        thr_waiterB.join();
+        thr_signal.join();
     }
     
     TEST(Core, ConditionVariableNotifyAll)
@@ -172,12 +162,9 @@ namespace coreTest
             cv.notify_all();
         });
         
-        thr_waiterA.Start();
-        thr_waiterB.Start();
-        thr_signal.Start();
-        thr_waiterA.Join();
-        thr_waiterB.Join();
-        thr_signal.Join();
+        thr_waiterA.join();
+        thr_waiterB.join();
+        thr_signal.join();
     }
     
     TEST(Core, SyncSharedQueue)
@@ -202,8 +189,19 @@ namespace coreTest
     
     TEST(Core, ProcessAsyncExecutor)
     {
-        auto executor = core::AsyncExecutor<core::ExecutionModel::Process, 6>::make_executor("Core_Test_ProcessAsyncExecutor", true);
+        auto executor = core::AsyncExecutor<core::ExecutionModel::Process, 10>::make_executor("Core_Test_ProcessAsyncExecutor", true);
+        std::vector<core::future<int>> futures;
+        for(int idx = 0; idx < 1000; idx++)
+        {
+            futures.emplace_back(executor->make_task<int>([](int i){return ++i;}, idx));
+        }
         
+        for(auto& future : futures)
+        {
+            static int futureIdx = 0;
+            ASSERT_EQ(future->get(), futureIdx + 1);
+            futureIdx++;
+        }
     }
 }
 

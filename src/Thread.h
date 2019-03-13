@@ -8,74 +8,70 @@
 #include <string>
 #include <atomic>
 #include "Assert.h"
+#include "NoExcept.h"
 
 const int MAX_THREAD_NAME = 30;
 
 namespace core
 {
-    /*Thread reperesent a thread, providing the following capabilties:
-    1)Creating a new thread.
-    2)Starting the newly created thread at a requested function.
-    3) Kill the thread.*/
+    class Impl_Base
+    {
+    public:
+        virtual ~Impl_Base() NOEXCEPT(true)=default;
+        virtual void join() const = 0;
+        virtual std::thread::id get_id() const = 0;
+    };
+    
+    template<typename Callable>
+    class Thread_Impl : public Impl_Base
+    {
+    public:
+        typedef std::unique_ptr<std::thread> thread_ptr;
+        
+        Thread_Impl(const std::string& name, Callable func)
+            :m_name(name), m_func(func){
+            m_thread.reset(new std::thread(std::bind(&Thread_Impl::entry_point, this)));
+        }
+        Thread_Impl()=delete;
+        Thread_Impl(const Thread_Impl&)=delete;
+        Thread_Impl& operator=(const Thread_Impl&)=delete;
+        ~Thread_Impl() NOEXCEPT(true) override = default;
+        
+        void join() const override { m_thread->join(); }
+        std::thread::id get_id() const override { return m_thread->get_id(); }
+        
+        void entry_point()
+        {
+            try{
+                m_func();
+            }
+            catch(const Exception&){}
+            catch(std::exception& e){
+                TRACE_ERROR("%s", e.what());
+            }
+        }
+    
+    private:
+        thread_ptr m_thread;
+        Callable m_func;
+        std::string m_name;
+    };
     class Thread
     {
     public:
-        /*Thread constrcutor will receive all needed threads states from outside (after this point the thread is immutable),
-        including - the name of the thread and its starting point.*/
-        Thread(const std::string& threadName, const std::function<void(void)>& requestedPoint);
-        ~Thread(){} //Destructor
+        template<typename Callable>
+        Thread(const std::string& name, Callable func)
+        {
+            m_impl.reset(new Thread_Impl<Callable>(name, func));
+        }
+        ~Thread()=default;
         Thread() = delete;
         Thread(const Thread&) = delete;
         void operator = (const Thread&) = delete;
-        //Accessors
-        std::thread::id GetThreadID() const {return m_thread->get_id();}
-        //Start will create the thread, initiating its run.
-        void Start();
-
-        void Join() const;
+        std::thread::id get_id() const {return m_impl->get_id();}
+        void join() const {m_impl->join();};
 
     private:
-        /*A deteministic entry point to the thread, providing the capability to initiate its desire entry point (the one
-        received at the constructor) and to catch various exceptions (it will be best if this will be the only catch
-        in the scope of the entire all the stack frames from this point.*/
-        void EntryPoint(void);
-        //Cleanup is a specific cancallation handler.
-        static void Cleanup(void*);
-
-    private:
-        std::string m_name;
-        std::function<void(void)> m_requestedPoint;
-        std::unique_ptr<std::thread> m_thread;
+        std::unique_ptr<Impl_Base> m_impl;
     };
-
-    inline Thread::Thread(const std::string& threadName, const std::function<void(void)>& requestedPoint)
-            : m_name(threadName), m_requestedPoint(requestedPoint)
-    {
-        assert((int)m_name.size() <= MAX_THREAD_NAME);
-    }
-
-    inline void Thread::Start()
-    {
-        m_thread.reset(new std::thread(std::bind(&Thread::EntryPoint, this)));
-    }
-
-    inline void Thread::Join() const
-    {
-        m_thread->join();
-    }
-
-    inline void Thread::EntryPoint()
-    {
-        try
-        {
-            m_requestedPoint();
-        }
-        catch(const Exception&)
-        {
-        }
-        catch(std::exception& e)
-        {
-            TRACE_ERROR("%s", e.what());
-        }
-    }
 }

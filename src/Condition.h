@@ -34,14 +34,14 @@ namespace core{
                 m_wakeLock.unlock();
                 return;
             }
-            m_command.store(command, std::memory_order_relaxed);
+            m_command.store(command);
 #if defined(__linux)
             syscall(SYS_futex, &m_command, FUTEX_WAKE, command == NOTIFY_ONE ? 1 : std::numeric_limits<int>::max(), nullptr, nullptr, 0);
 #else
             throw Exception(__CORE_SOURCE, "wake is not being supported by current platform");
 #endif
     
-            while(m_command.load(std::memory_order_relaxed) != SLEEP && m_waitersCount.load(std::memory_order_relaxed) != 0){}
+            while(m_command.load() != SLEEP && m_waitersCount.load() != 0){}
     
             m_wakeLock.unlock();
         }
@@ -51,7 +51,7 @@ namespace core{
             m_waitersCount++;
             mutex.unlock();
             while (true) {
-                while (m_command.load(std::memory_order_acquire) == SLEEP)
+                while (m_command.load() == SLEEP)
 #if defined(__linux)
                     syscall(SYS_futex, &m_command, FUTEX_WAIT, SLEEP, nullptr, nullptr, 0);
 #else
@@ -59,14 +59,13 @@ namespace core{
 #endif
         
                 int fromCommand_one = NOTIFY_ONE;
-                if (m_command.compare_exchange_strong(fromCommand_one, static_cast<int>(SLEEP),
-                                                      std::memory_order_relaxed)) {
+                if (m_command.compare_exchange_strong(fromCommand_one, static_cast<int>(SLEEP))) {
                     m_waitersCount--;
                     mutex.lock();
                     return;
-                } else if (m_command.load(std::memory_order_relaxed) == NOTIFY_ALL) {
-                    if (m_waitersCount.fetch_sub(1, std::memory_order_relaxed) == 1)
-                        m_command.store(SLEEP, std::memory_order_relaxed);
+                } else if (m_command.load() == NOTIFY_ALL) {
+                    if (m_waitersCount.fetch_sub(1) == 1)
+                        m_command.store(SLEEP);
             
                     mutex.lock();
                     return;

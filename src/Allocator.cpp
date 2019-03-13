@@ -51,18 +51,17 @@ namespace core{
     {
         unsigned int cellLevel = m_topCellLevel - logarithmVal, targetCellLevel = m_topCellLevel - logarithmVal;
         unsigned int cell = NON;
-        while(cellLevel != NON)
-        {
-            if(m_availableCells.find(cellLevel) != m_availableCells.end())//Cells are counted in inverse
+        while (cellLevel >= 0) {
+            if (m_availableCells.find(cellLevel) != m_availableCells.end())//Cells are counted in inverse
             {
                 cell = ParitionCells(cellLevel, targetCellLevel);
                 break;
             }
             cellLevel--;
         }
-        if(cellLevel == m_topCellLevel + 1 || cell == NON)
+        if (cell == NON)
             throw std::bad_alloc();
-    
+
         (*m_buddyTree)[cell] = Allocated;
         DecreaseCellLevel(targetCellLevel, 1);
         return BuddyCell::CalculateCellAddress(m_buffer, targetCellLevel, logarithmVal, cell);
