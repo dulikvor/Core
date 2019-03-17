@@ -3,6 +3,7 @@
 #include <mutex>
 #include <thread>
 #include <chrono>
+#include "src/Param.h"
 #include "src/Process.h"
 #include "src/SharedObject.h"
 #include "src/SymbolSet.h"
@@ -19,6 +20,12 @@ using namespace std::literals::chrono_literals;
 namespace coreTest
 {
     
+    struct A
+    {
+    public:
+        int val = 5;
+    };
+    
     class CoreClassTest : public ::testing::Environment
     {
     public:
@@ -27,6 +34,37 @@ namespace coreTest
             core::Logger::Instance().Start(core::TraceSeverity::Info);
         }
     };
+    
+    TEST(Core, Params)
+    {
+        int lvalue_int = 5;
+        auto lvalue_int_param = core::MakeParam(lvalue_int);
+        core::TypedParam<int>& lvalue_int_typed_param = reinterpret_cast<core::TypedParam<int>&>(*lvalue_int_param);
+        ASSERT_EQ(lvalue_int_typed_param.Get<int>(), lvalue_int);
+    
+        auto rvalue_int_param = core::MakeParam(5);
+        core::TypedParam<int>& rvalue_int_typed_param = reinterpret_cast<core::TypedParam<int>&>(*rvalue_int_param);
+        ASSERT_EQ(rvalue_int_typed_param.Get<int>(), 5);
+        
+        const char* lvalue_literal = "literal string";
+        auto lvalue_literal_param = core::MakeParam(lvalue_literal);
+        core::TypedParam<char*>& lvalue_literal_typed_param = reinterpret_cast<core::TypedParam<char*>&>(*lvalue_literal_param);
+        ASSERT_EQ(std::string(lvalue_literal_typed_param.Get<char*>()), lvalue_literal);
+    
+        auto rvalue_literal_param = core::MakeParam("literal string");
+        core::TypedParam<char*>& rvalue_literal_typed_param = reinterpret_cast<core::TypedParam<char*>&>(*rvalue_literal_param);
+        ASSERT_EQ(std::string(rvalue_literal_typed_param.Get<char*>()), "literal string");
+        
+        A lvalue_usertype;
+        auto lvalue_usertype_param = core::MakeParam(lvalue_usertype);
+        core::TypedParam<A>& lvalue_usertype_typed_param = reinterpret_cast<core::TypedParam<A>&>(*lvalue_usertype_param);
+        ASSERT_EQ(lvalue_usertype_typed_param.Get<A>().val, 5);
+    
+        auto rvalue_usertype_param = core::MakeParam(A());
+        core::TypedParam<A>& rvalue_usertype_typed_param = reinterpret_cast<core::TypedParam<A>&>(*rvalue_usertype_param);
+        ASSERT_EQ(rvalue_usertype_typed_param.Get<A>().val, 5);
+        
+    }
     
     TEST(Core, SharedMemory)
     {
