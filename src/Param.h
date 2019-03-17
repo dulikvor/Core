@@ -85,7 +85,8 @@ namespace core
         typedef typename std::remove_reference<X>::type Type;
 
         TypedParam(X&& value) :
-                Param(TypeId<Type, ARGUMENTS>::value), m_rawBuffer(nullptr)
+                Param(TypeId<Type, ARGUMENTS>::value != -1 ?
+                    TypeId<Type, ARGUMENTS>::value : typeid(Type).hash_code()), m_rawBuffer(nullptr)
         {
             if(m_typeId == TypeId<char*, ARGUMENTS>::value)
             {
@@ -108,7 +109,8 @@ namespace core
             }
         }
 
-        TypedParam(X& value) : Param(TypeId<Type, ARGUMENTS>::value)
+        TypedParam(X& value) : Param(TypeId<Type, ARGUMENTS>::value != -1 ?
+                    TypeId<Type, ARGUMENTS>::value : typeid(Type).hash_code()), m_rawBuffer(nullptr)
         {
             if(m_typeId == TypeId<char*, ARGUMENTS>::value)
             {
@@ -131,7 +133,8 @@ namespace core
             }
         }
 
-        TypedParam(const X& value) : Param(TypeId<Type, ARGUMENTS>::value) //const char* and const void* will not be diverted to here due to the fact const X&, X=char*->char* const&
+        TypedParam(const X& value) : Param(TypeId<Type, ARGUMENTS>::value != -1 ?
+                    TypeId<Type, ARGUMENTS>::value : typeid(Type).hash_code()) //const char* and const void* will not be diverted to here due to the fact const X&, X=char*->char* const&
         {
             m_rawBuffer = new char[sizeof(Type)];
             new (m_rawBuffer) Type(value);
@@ -153,7 +156,9 @@ namespace core
 
         virtual ~TypedParam()
         {
-            if(m_typeId == TypeId<void*, ARGUMENTS>::value) //When Type==void* Param holds no ownership on the data.
+            int typeId = TypeId<Type, ARGUMENTS>::value != -1 ? TypeId<Type, ARGUMENTS>::value
+                : typeid(Type).hash_code();
+            if(m_typeId == typeId) //When Type==void* Param holds no ownership on the data.
                 return;
             Type* typedBuffer = reinterpret_cast<Type*>(m_rawBuffer);
             typedBuffer->~Type();
@@ -224,7 +229,9 @@ namespace core
         template<typename Y, typename = typename std::enable_if<!std::is_pointer<Y>::value, bool>::type>
         const Y& Get() const
         {
-            assert((TypeId<Y, ARGUMENTS>::value) == m_typeId);
+            int typeId = TypeId<Y, ARGUMENTS>::value != -1 ? TypeId<Y, ARGUMENTS>::value
+                : typeid(Y).hash_code();
+            assert(typeId == m_typeId);
             return *reinterpret_cast<const Y*>(m_rawBuffer);
         }
 
