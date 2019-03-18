@@ -64,6 +64,9 @@ namespace coreTest
         core::TypedParam<A>& rvalue_usertype_typed_param = reinterpret_cast<core::TypedParam<A>&>(*rvalue_usertype_param);
         ASSERT_EQ(rvalue_usertype_typed_param.Get<A>().val, 5);
         
+        core::Param::Param_Ptr cloned_param =  lvalue_usertype_param->Clone();
+        core::TypedParam<A>& cloned_typed_param = reinterpret_cast<core::TypedParam<A>&>(*cloned_param);
+        ASSERT_EQ(lvalue_usertype_typed_param.Get<A>().val, cloned_typed_param.Get<A>().val);
     }
     
     TEST(Core, SharedMemory)
