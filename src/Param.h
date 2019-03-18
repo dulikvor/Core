@@ -56,7 +56,9 @@ namespace core
     class Param
     {
     public:
-        Param(int typeId):m_typeId(typeId)
+        typedef std::unique_ptr<Param> Param_Ptr;
+        
+        Param(int typeId, char* rawBuffer = nullptr):m_typeId(typeId), m_rawBuffer(rawBuffer)
         {
             if(m_typeId == -1)
                 throw core::Exception(__CORE_SOURCE, "Non supported type");
@@ -73,9 +75,13 @@ namespace core
         IS_INTEGRAL(CtypeS,      char*);
         IS_INTEGRAL(String,      std::string);
         IS_INTEGRAL(StringArray, std::vector<std::string>);
+        
+        char* GetBuffer(){ return m_rawBuffer; }
+        virtual Param_Ptr Clone() = 0;
 
     protected:
         int m_typeId;
+        char* m_rawBuffer;
     };
 
     template<typename X>
@@ -83,10 +89,11 @@ namespace core
     {
     public:
         typedef typename std::remove_reference<X>::type Type;
+        typedef TypedParam<X> _Self;
 
         TypedParam(X&& value) :
                 Param(TypeId<Type, ARGUMENTS>::value != -1 ?
-                    TypeId<Type, ARGUMENTS>::value : typeid(Type).hash_code()), m_rawBuffer(nullptr)
+                    TypeId<Type, ARGUMENTS>::value : typeid(Type).hash_code())
         {
             if(m_typeId == TypeId<char*, ARGUMENTS>::value)
             {
@@ -110,7 +117,7 @@ namespace core
         }
 
         TypedParam(X& value) : Param(TypeId<Type, ARGUMENTS>::value != -1 ?
-                    TypeId<Type, ARGUMENTS>::value : typeid(Type).hash_code()), m_rawBuffer(nullptr)
+                    TypeId<Type, ARGUMENTS>::value : typeid(Type).hash_code())
         {
             if(m_typeId == TypeId<char*, ARGUMENTS>::value)
             {
@@ -149,7 +156,7 @@ namespace core
             m_rawBuffer[size] = '\0';
         }
 
-        TypedParam(const void*& value) : Param(TypeId<Type, ARGUMENTS>::value), m_rawBuffer((char*)const_cast<void*>(value))
+        TypedParam(const void*& value) : Param(TypeId<Type, ARGUMENTS>::value, (char*)const_cast<void*>(value))
         {
             static_assert(std::is_same<void*, Type>::value,"Type mismatch - Type!=void*");
         }
@@ -212,7 +219,7 @@ namespace core
             return *this;
         }
 
-        TypedParam(TypedParam&& obj):m_rawBuffer(nullptr)
+        TypedParam(TypedParam&& obj)
         {
             m_typeId = obj.m_typeId;
             std::swap(m_rawBuffer, obj.m_rawBuffer);
@@ -224,6 +231,11 @@ namespace core
             m_rawBuffer = nullptr;
             std::swap(m_rawBuffer, obj.m_rawBuffer);
             return *this;
+        }
+        
+        Param_Ptr Clone() override
+        {
+            return Param_Ptr(new _Self(*reinterpret_cast<Type*>(m_rawBuffer)));
         }
 
         template<typename Y, typename = typename std::enable_if<!std::is_pointer<Y>::value, bool>::type>
@@ -248,9 +260,6 @@ namespace core
             assert((TypeId<void*, ARGUMENTS>::value) == m_typeId);
             return (void*)m_rawBuffer;
         }
-
-    private:
-        char* m_rawBuffer;
     };
 
     template<typename X, typename std::enable_if<!std::is_array<typename std::remove_reference<X>::type>::value &&
