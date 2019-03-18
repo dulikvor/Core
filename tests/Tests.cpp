@@ -23,6 +23,7 @@ namespace coreTest
     struct A
     {
     public:
+        bool operator==(const A& rhs) const {return val == rhs.val;}
         int val = 5;
     };
     

@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <type_traits>
 #include "Exception.h"
+#include "NoExcept.h"
 
 namespace core
 {
@@ -63,7 +64,9 @@ namespace core
             if(m_typeId == -1)
                 throw core::Exception(__CORE_SOURCE, "Non supported type");
         }
-        virtual ~Param(){}
+        virtual ~Param() = default;
+        virtual bool operator==(const Param& rhs) const{ return m_typeId == rhs.m_typeId; }
+        virtual bool operator!=(const Param& rhs) const{ return !(*this == rhs); }
 
         IS_INTEGRAL(Short,       short);
         IS_INTEGRAL(Int,         int);
@@ -91,7 +94,7 @@ namespace core
         typedef typename std::remove_reference<X>::type Type;
         typedef TypedParam<X> _Self;
 
-        TypedParam(X&& value) :
+        explicit TypedParam(X&& value) :
                 Param(TypeId<Type, ARGUMENTS>::value != -1 ?
                     TypeId<Type, ARGUMENTS>::value : typeid(Type).hash_code())
         {
@@ -116,7 +119,7 @@ namespace core
             }
         }
 
-        TypedParam(X& value) : Param(TypeId<Type, ARGUMENTS>::value != -1 ?
+        explicit TypedParam(X& value) : Param(TypeId<Type, ARGUMENTS>::value != -1 ?
                     TypeId<Type, ARGUMENTS>::value : typeid(Type).hash_code())
         {
             if(m_typeId == TypeId<char*, ARGUMENTS>::value)
@@ -140,14 +143,14 @@ namespace core
             }
         }
 
-        TypedParam(const X& value) : Param(TypeId<Type, ARGUMENTS>::value != -1 ?
+        explicit TypedParam(const X& value) : Param(TypeId<Type, ARGUMENTS>::value != -1 ?
                     TypeId<Type, ARGUMENTS>::value : typeid(Type).hash_code()) //const char* and const void* will not be diverted to here due to the fact const X&, X=char*->char* const&
         {
             m_rawBuffer = new char[sizeof(Type)];
             new (m_rawBuffer) Type(value);
         }
 
-        TypedParam(const char*& value) : Param(TypeId<Type, ARGUMENTS>::value)
+        explicit TypedParam(const char*& value) : Param(TypeId<Type, ARGUMENTS>::value)
         {
             static_assert(std::is_same<char*, Type>::value,"Type mismatch - Type!=char*");
             size_t size = strlen(value);
@@ -156,12 +159,12 @@ namespace core
             m_rawBuffer[size] = '\0';
         }
 
-        TypedParam(const void*& value) : Param(TypeId<Type, ARGUMENTS>::value, (char*)const_cast<void*>(value))
+        explicit TypedParam(const void*& value) : Param(TypeId<Type, ARGUMENTS>::value, (char*)const_cast<void*>(value))
         {
             static_assert(std::is_same<void*, Type>::value,"Type mismatch - Type!=void*");
         }
 
-        virtual ~TypedParam()
+        ~TypedParam() override
         {
             int typeId = TypeId<Type, ARGUMENTS>::value != -1 ? TypeId<Type, ARGUMENTS>::value
                 : typeid(Type).hash_code();
@@ -231,6 +234,13 @@ namespace core
             m_rawBuffer = nullptr;
             std::swap(m_rawBuffer, obj.m_rawBuffer);
             return *this;
+        }
+    
+        bool operator==(const Param& rhs) const override
+        {
+            bool equal = Param::operator==(rhs);
+            const Type& _instance = static_cast<const _Self&>(rhs).Get<Type>();
+            return equal && _instance == *reinterpret_cast<Type*>(m_rawBuffer);
         }
         
         Param_Ptr Clone() override
