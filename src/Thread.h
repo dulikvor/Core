@@ -53,8 +53,8 @@ namespace core
     
     private:
         thread_ptr m_thread;
-        Callable m_func;
         std::string m_name;
+        Callable m_func;
     };
     class Thread
     {
