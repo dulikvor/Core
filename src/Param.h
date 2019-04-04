@@ -8,7 +8,6 @@
 #include <algorithm>
 #include <type_traits>
 #include "Exception.h"
-#include "NoExcept.h"
 
 namespace core
 {
