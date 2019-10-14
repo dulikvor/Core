@@ -238,8 +238,15 @@ namespace core
         bool operator==(const Param& rhs) const override
         {
             bool equal = Param::operator==(rhs);
-            const Type& _instance = static_cast<const _Self&>(rhs).Get<Type>();
-            return equal && _instance == *reinterpret_cast<Type*>(m_rawBuffer);
+    
+            if(m_typeId == TypeId<char*, ARGUMENTS>::value)
+                return equal && strcmp(m_rawBuffer, const_cast<Param&>(rhs).GetBuffer()) == 0;
+            else
+            {
+                const Type& _instance = static_cast<const _Self&>(rhs).Get<Type>();
+                return equal && _instance == *reinterpret_cast<Type*>(m_rawBuffer);
+            }
+
         }
         
         Param_Ptr Clone() override
