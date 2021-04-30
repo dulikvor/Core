@@ -9,7 +9,7 @@
 
 namespace core{
     
-    template<typename Type, std::size_t Count>
+    template<typename Type, std::size_t Count, class = typename std::enable_if<std::is_default_constructible<Type>::value, Type>::type>
     class SWSRCyclicBuffer
     {
     public:
