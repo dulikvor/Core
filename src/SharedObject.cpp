@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <asm-generic/errno-base.h>
+#include <errno.h>
 #endif
 #include "Exception.h"
 #include "Directory.h"
@@ -90,7 +91,7 @@ namespace core{
     {
         #if defined(__linux)
         VERIFY(m_handle != -1, "SharedObject is not opened/created yet");
-        PLATFORM_VERIFY(::ftruncate(m_handle, size) == 0);
+        PLATFORM_VERIFY(::ftruncate(m_handle, size) == 0 || errno == 22);
         #endif
     }
     

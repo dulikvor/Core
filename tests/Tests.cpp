@@ -233,7 +233,7 @@ namespace coreTest
     {
         auto executor = core::AsyncExecutor<core::ExecutionModel::Process, 10>::make_executor("Core_Test_ProcessAsyncExecutor", true);
         std::vector<core::future<int>> futures;
-        for(int idx = 0; idx < 1000; idx++)
+        for(int idx = 0; idx < 10; idx++)
         {
             futures.emplace_back(executor->make_task<int>([](int i){return ++i;}, idx));
         }
