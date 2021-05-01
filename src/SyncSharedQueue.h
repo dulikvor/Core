@@ -9,15 +9,16 @@
 
 namespace core{
     
-    template<typename Type, std::size_t Count, class = typename std::enable_if<std::is_default_constructible<Type>::value, Type>::type>
+    template<typename Type, std::size_t Count>
     class SWSRCyclicBuffer
     {
     public:
+        typedef typename std::enable_if<std::is_default_constructible<Type>::value, Type>::type value_type;
         SWSRCyclicBuffer():m_readIdx(0), m_writeIdx(0), m_full(false), m_empty(true){}
         bool is_empty() const { return m_readIdx == m_writeIdx; }
         bool is_full() const { return (m_writeIdx + 1) % Count == m_readIdx; } //we are going to loose one write
         
-        bool write(Type&& elem)
+        bool write(value_type&& elem)
         {
             if(!is_full())
             {
@@ -28,7 +29,7 @@ namespace core{
             return false;
         }
     
-        bool write(Type& elem)
+        bool write(value_type& elem)
         {
             if(!is_full())
             {
@@ -39,8 +40,8 @@ namespace core{
             return false;
         }
         
-        template<typename X = Type>
-        typename std::enable_if<std::is_move_assignable<X>::value, bool>::type read(Type& elem)
+        template<typename X = value_type>
+        typename std::enable_if<std::is_move_assignable<X>::value, bool>::type read(value_type& elem)
         {
             if(!is_empty())
             {
@@ -51,8 +52,8 @@ namespace core{
             return false;
         }
     
-        template<typename X = Type>
-        typename std::enable_if<std::is_move_assignable<X>::value == false, bool>::type read(Type& elem)
+        template<typename X = value_type>
+        typename std::enable_if<std::is_move_assignable<X>::value == false, bool>::type read(value_type& elem)
         {
             if(!is_empty())
             {
