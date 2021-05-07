@@ -23,7 +23,7 @@ namespace core{
             if(!is_full())
             {
                 m_buffer[m_writeIdx] = std::move(elem);
-                m_writeIdx = (++m_writeIdx) % Count;
+                m_writeIdx = (m_writeIdx + 1) % Count;
                 return true;
             }
             return false;
@@ -34,7 +34,7 @@ namespace core{
             if(!is_full())
             {
                 m_buffer[m_writeIdx] = elem;
-                m_writeIdx = (++m_writeIdx) % Count;
+                m_writeIdx = (m_writeIdx + 1) % Count;
                 return true;
             }
             return false;
