@@ -46,7 +46,7 @@ namespace core{
             if(!is_empty())
             {
                 elem = std::move(m_buffer[m_readIdx]);
-                m_readIdx = (m_readIdx + ) % Count;
+                m_readIdx = (m_readIdx + 1) % Count;
                 return true;
             }
             return false;
