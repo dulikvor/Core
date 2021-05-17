@@ -53,6 +53,17 @@ namespace core
         return m_typeId == TypeId<TYPE, ARGUMENTS>::value; \
     }
 
+    template<typename T>
+    struct TypeIdHelper
+    {
+    public:
+        static int GenerateTypeId()
+        {
+            return TypeId<T, ARGUMENTS>::value != -1 ?
+                    TypeId<T, ARGUMENTS>::value : typeid(T).hash_code();
+        }
+    };
+
     class Param
     {
     public:
@@ -94,8 +105,7 @@ namespace core
         typedef TypedParam<X> _Self;
 
         explicit TypedParam(X&& value) :
-                Param(TypeId<Type, ARGUMENTS>::value != -1 ?
-                    TypeId<Type, ARGUMENTS>::value : typeid(Type).hash_code())
+                Param(TypeIdHelper<Type>::GenerateTypeId())
         {
             if(m_typeId == TypeId<char*, ARGUMENTS>::value)
             {
@@ -118,8 +128,7 @@ namespace core
             }
         }
 
-        explicit TypedParam(X& value) : Param(TypeId<Type, ARGUMENTS>::value != -1 ?
-                    TypeId<Type, ARGUMENTS>::value : typeid(Type).hash_code())
+        explicit TypedParam(X& value) : Param(TypeIdHelper<Type>::GenerateTypeId())
         {
             if(m_typeId == TypeId<char*, ARGUMENTS>::value)
             {
@@ -142,8 +151,7 @@ namespace core
             }
         }
 
-        explicit TypedParam(const X& value) : Param(TypeId<Type, ARGUMENTS>::value != -1 ?
-                    TypeId<Type, ARGUMENTS>::value : typeid(Type).hash_code()) //const char* and const void* will not be diverted to here due to the fact const X&, X=char*->char* const&
+        explicit TypedParam(const X& value) : Param(TypeIdHelper<Type>::GenerateTypeId()) //const char* and const void* will not be diverted to here due to the fact const X&, X=char*->char* const&
         {
             m_rawBuffer = new char[sizeof(Type)];
             new (m_rawBuffer) Type(value);
@@ -165,8 +173,7 @@ namespace core
 
         ~TypedParam() override
         {
-            int typeId = TypeId<Type, ARGUMENTS>::value != -1 ? TypeId<Type, ARGUMENTS>::value
-                : typeid(Type).hash_code();
+            int typeId = TypeIdHelper<Type>::GenerateTypeId();
             if(m_typeId == typeId) //When Type==void* Param holds no ownership on the data.
                 return;
             Type* typedBuffer = reinterpret_cast<Type*>(m_rawBuffer);
