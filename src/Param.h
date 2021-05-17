@@ -77,6 +77,7 @@ namespace core
         virtual ~Param() = default;
         virtual bool operator==(const Param& rhs) const{ return m_typeId == rhs.m_typeId; }
         virtual bool operator!=(const Param& rhs) const{ return !(*this == rhs); }
+        int GetTypeId() const { return m_typeId; }
 
         IS_INTEGRAL(Short,       short);
         IS_INTEGRAL(Int,         int);
