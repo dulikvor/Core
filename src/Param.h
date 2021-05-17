@@ -118,8 +118,7 @@ namespace core
             }
         }
 
-        explicit TypedParam(X& value) : Param(TypeId<Type, ARGUMENTS>::value != -1 ?
-                    TypeId<Type, ARGUMENTS>::value : typeid(Type).hash_code())
+        explicit TypedParam(X& value) : Param(GenerateTypeId<Type>())
         {
             if(m_typeId == TypeId<char*, ARGUMENTS>::value)
             {
@@ -247,6 +246,13 @@ namespace core
                 return equal && _instance == *reinterpret_cast<Type*>(m_rawBuffer);
             }
 
+        }
+
+        template<typename T>
+        static int GenerateTypeId()
+        {
+            return TypeId<T, ARGUMENTS>::value != -1 ?
+                    TypeId<T, ARGUMENTS>::value : typeid(T).hash_code();
         }
         
         Param_Ptr Clone() override
